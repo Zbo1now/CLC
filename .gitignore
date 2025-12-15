@@ -1,0 +1,19 @@
+# Java / Maven
+target/
+*.class
+*.log
+.settings/
+.classpath
+.project
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# uni-app / HBuilder X
+h5-uniapp/unpackage/
+h5-uniapp/node_modules/
+.DS_Store
