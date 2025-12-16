@@ -19,4 +19,8 @@ public interface TransactionDao {
     @Select("SELECT id, team_id AS teamId, txn_type AS txnType, amount, description, created_at AS createdAt " +
             "FROM transactions WHERE team_id = #{teamId} ORDER BY created_at DESC LIMIT #{limit}")
     List<Transaction> listRecentByTeam(@Param("teamId") int teamId, @Param("limit") int limit);
+
+        @Select("SELECT id, team_id AS teamId, txn_type AS txnType, amount, description, created_at AS createdAt " +
+            "FROM transactions WHERE team_id = #{teamId} ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+        List<Transaction> listByTeamPaged(@Param("teamId") int teamId, @Param("offset") int offset, @Param("limit") int limit);
 }

@@ -4,48 +4,73 @@
     <view class="nav-header">
       <view class="nav-title">众创空间 · 智创未来</view>
       <view class="nav-actions">
-        <!-- 暂时保留图标位置，后续可做功能 -->
-        <text class="nav-icon">🔔</text>
+        <view class="nav-icon-btn">
+          <text class="nav-icon">🔔</text>
+        </view>
       </view>
     </view>
 
-    <!-- 系统通知 -->
-    <view class="notification-bar" v-if="notification">
-      <text class="notice-icon">⚠️</text>
-      <text class="notice-text">{{ notification }}</text>
-    </view>
-
-    <!-- 资产卡片 -->
-    <view class="glass-card balance-card">
+    <!-- 公告栏（替代首页余额大盘） -->
+    <view class="glass-card bulletin-card">
       <view class="card-header">
-        <text class="card-label">当前虚拟币余额</text>
-        <text class="card-icon">💰</text>
+        <text class="card-label">公告栏</text>
+        <text class="card-icon">📣</text>
       </view>
-      <view class="balance-value">{{ balance }} <text class="unit">币</text></view>
-      <view class="card-actions">
-        <view class="action-link" @tap="handleRecharge">获取</view>
-        <view class="divider">|</view>
-        <view class="action-link" @tap="viewDetails">查看明细 →</view>
+      <view class="bulletin-list">
+        <view class="bulletin-item">
+          <text class="dot">•</text>
+          <text class="bulletin-text">本周开放：3D 打印机与激光切割机预约</text>
+        </view>
+        <view class="bulletin-item">
+          <text class="dot">•</text>
+          <text class="bulletin-text">每日打卡可获得虚拟币奖励（以实际规则为准）</text>
+        </view>
+        <view class="bulletin-item">
+          <text class="dot">•</text>
+          <text class="bulletin-text">设备/工位消费将自动生成流水记录</text>
+        </view>
       </view>
     </view>
 
-    <!-- 快捷操作入口 -->
-    <view class="grid-menu">
-      <view class="grid-item" @tap="handleAction('checkin')">
-        <view class="icon-box color-1">👤</view>
-        <text class="grid-label">打卡</text>
+    <!-- 获取虚拟币入口 -->
+    <view class="glass-card module-card">
+      <view class="module-header">
+        <view class="module-left">
+          <text class="module-icon">💎</text>
+          <text class="module-title">获取虚拟币</text>
+        </view>
+        <text class="module-sub">Earn</text>
       </view>
-      <view class="grid-item" @tap="handleAction('achievement')">
-        <view class="icon-box color-2">📝</view>
-        <text class="grid-label">成果提交</text>
+      <view class="grid-menu">
+        <view class="grid-item" @tap="handleAction('checkin')">
+          <view class="icon-box color-1">👤</view>
+          <text class="grid-label">打卡</text>
+        </view>
+        <view class="grid-item" @tap="handleAction('achievement')">
+          <view class="icon-box color-2">📝</view>
+          <text class="grid-label">成果提交</text>
+        </view>
       </view>
-      <view class="grid-item" @tap="handleAction('station')">
-        <view class="icon-box color-3">🏢</view>
-        <text class="grid-label">工位租赁</text>
+    </view>
+
+    <!-- 消费虚拟币入口 -->
+    <view class="glass-card module-card">
+      <view class="module-header">
+        <view class="module-left">
+          <text class="module-icon">🧾</text>
+          <text class="module-title">消费虚拟币</text>
+        </view>
+        <text class="module-sub">Spend</text>
       </view>
-      <view class="grid-item" @tap="handleAction('device')">
-        <view class="icon-box color-4">📸</view>
-        <text class="grid-label">设备租用</text>
+      <view class="grid-menu">
+        <view class="grid-item" @tap="handleAction('station')">
+          <view class="icon-box color-3">🏢</view>
+          <text class="grid-label">工位租赁</text>
+        </view>
+        <view class="grid-item" @tap="handleAction('device')">
+          <view class="icon-box color-4">🛠️</view>
+          <text class="grid-label">设备租用</text>
+        </view>
       </view>
     </view>
 
@@ -79,7 +104,6 @@ import { onShow } from '@dcloudio/uni-app';
 import { baseUrl } from '../../common/config.js';
 
 const balance = ref(0);
-const notification = ref('您的 3D 打印预约即将开始！');
 const transactions = ref([]);
 
 const getSessionId = () => {
@@ -174,7 +198,7 @@ function handleRecharge() {
 }
 
 function viewDetails() {
-  uni.showToast({ title: '查看明细', icon: 'none' });
+  uni.navigateTo({ url: '/pages/transactions/transactions' });
 }
 
 function handleAction(type) {
@@ -199,6 +223,7 @@ function handleAction(type) {
   };
   uni.showToast({ title: actions[type] + '即将上线', icon: 'none' });
 }
+
 
 function pathToBase64(path) {
     return new Promise((resolve, reject) => {
@@ -253,6 +278,7 @@ function submitCheckIn(base64) {
 .container {
   padding: 30rpx;
   padding-top: 80rpx; /* 留出状态栏高度 */
+  padding-bottom: 140rpx; /* 预留底部 tabBar 空间 */
   justify-content: flex-start; /* 覆盖默认的居中 */
   gap: 32rpx;
 }
@@ -262,75 +288,105 @@ function submitCheckIn(base64) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10rpx;
+  padding: 18rpx 18rpx;
+  border-radius: $radius-lg;
+  background: rgba($white, 0.72);
+  backdrop-filter: blur(14px);
+  box-shadow: $shadow-sm;
   
   .nav-title {
     font-size: 36rpx;
     font-weight: 800;
     color: $text-main;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
-  .nav-icon {
-    font-size: 40rpx;
-  }
-}
-
-.notification-bar {
-  width: 100%;
-  background: rgba(255, 165, 0, 0.15);
-  border: 1px solid rgba(255, 165, 0, 0.3);
-  border-radius: 16rpx;
-  padding: 20rpx;
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  animation: slideIn 0.5s ease;
-  
-  .notice-icon { font-size: 32rpx; }
-  .notice-text { 
-    font-size: 26rpx; 
-    color: #d97706; 
-    font-weight: 600;
-  }
-}
-
-.balance-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
-  padding: 40rpx;
-  
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20rpx;
-    .card-label { font-size: 28rpx; color: $text-light; }
-    .card-icon { font-size: 32rpx; }
-  }
-  
-  .balance-value {
-    font-size: 64rpx;
-    font-weight: 800;
-    color: $primary;
-    margin-bottom: 30rpx;
-    .unit { font-size: 28rpx; margin-left: 8rpx; color: $text-main; }
-  }
-  
-  .card-actions {
+  .nav-icon-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: $radius-full;
     display: flex;
     align-items: center;
-    gap: 20rpx;
-    font-size: 28rpx;
-    color: $primary;
-    font-weight: 600;
-    
-    .divider { color: $text-light; opacity: 0.5; }
+    justify-content: center;
+    background: rgba($bg-color, 0.85);
+    box-shadow: $shadow-sm;
+    transition: transform 0.2s;
   }
+
+  .nav-icon-btn:active {
+    transform: scale(0.98);
+  }
+
+  .nav-icon {
+    font-size: 38rpx;
+  }
+}
+
+.bulletin-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  padding: 40rpx;
+}
+
+.module-card {
+  padding: 34rpx 28rpx;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.card-label {
+  font-size: 28rpx;
+  color: $text-light;
+  font-weight: 700;
+}
+
+.card-icon {
+  font-size: 32rpx;
+}
+
+.bulletin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.bulletin-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.dot {
+  font-size: 28rpx;
+  color: $primary;
+  line-height: 1.2;
+}
+
+.bulletin-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: $text-main;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  font-size: 28rpx;
+  color: $primary;
+  font-weight: 700;
 }
 
 .grid-menu {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 20rpx;
   
   .grid-item {
@@ -367,6 +423,35 @@ function submitCheckIn(base64) {
       font-weight: 600;
     }
   }
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.module-left {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.module-icon {
+  font-size: 34rpx;
+}
+
+.module-title {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: $text-main;
+}
+
+.module-sub {
+  font-size: 22rpx;
+  color: $text-light;
+  font-weight: 800;
 }
 
 .list-card {
@@ -414,8 +499,4 @@ function submitCheckIn(base64) {
   }
 }
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(-10rpx); }
-  to { opacity: 1; transform: translateY(0); }
-}
 </style>

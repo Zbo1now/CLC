@@ -55,8 +55,42 @@
         "navigationBarTitleText": "成果提交",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/team/team",
+      "style": {
+        "navigationBarTitleText": "团队中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/transactions/transactions",
+      "style": {
+        "navigationBarTitleText": "流水明细",
+        "navigationStyle": "custom"
+      }
     }
   ],
+  "tabBar": {
+    "color": "#64748b",
+    "selectedColor": "#6366f1",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "static/tabbar/home.svg",
+        "selectedIconPath": "static/tabbar/home-active.svg"
+      },
+      {
+        "pagePath": "pages/team/team",
+        "text": "团队中心",
+        "iconPath": "static/tabbar/team.svg",
+        "selectedIconPath": "static/tabbar/team-active.svg"
+      }
+    ]
+  },
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "CampusCoin",
