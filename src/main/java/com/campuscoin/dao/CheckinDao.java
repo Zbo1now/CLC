@@ -1,49 +1,29 @@
 package com.campuscoin.dao;
 
 import com.campuscoin.model.Checkin;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import java.sql.Date;
 import java.util.List;
 
-@Repository
-public class CheckinDao {
+@Mapper
+public interface CheckinDao {
 
-    private final JdbcTemplate jdbcTemplate;
+    @Insert("INSERT INTO checkins (team_id, checkin_date, coins_earned) VALUES (#{teamId}, #{checkinDate}, #{coinsEarned})")
+    int create(Checkin checkin);
 
-    public CheckinDao(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    // 显式 alias 下划线字段为驼峰，避免依赖 mybatis mapUnderscoreToCamelCase 配置
+    @Select("SELECT id, team_id AS teamId, checkin_date AS checkinDate, coins_earned AS coinsEarned, created_at AS createdAt FROM checkins WHERE team_id = #{teamId} AND YEAR(checkin_date) = #{year} AND MONTH(checkin_date) = #{month}")
+    List<Checkin> findByTeamAndMonth(@Param("teamId") int teamId,
+                                     @Param("year") int year,
+                                     @Param("month") int month);
 
-    public boolean create(Checkin checkin) {
-        String sql = "INSERT INTO checkins (team_id, checkin_date, coins_earned) VALUES (?, ?, ?)";
-        return jdbcTemplate.update(sql, checkin.getTeamId(), checkin.getCheckinDate(), checkin.getCoinsEarned()) == 1;
-    }
+    @Select("SELECT COUNT(*) FROM checkins WHERE team_id = #{teamId} AND checkin_date = #{date}")
+    int countCheckinsOnDate(@Param("teamId") int teamId, @Param("date") Date date);
 
-    public List<Checkin> findByTeamAndMonth(int teamId, int year, int month) {
-        String sql = "SELECT * FROM checkins WHERE team_id = ? AND YEAR(checkin_date) = ? AND MONTH(checkin_date) = ?";
-        return jdbcTemplate.query(sql, new CheckinRowMapper(), teamId, year, month);
-    }
-    
-    public boolean hasCheckedInToday(int teamId, java.sql.Date date) {
-        String sql = "SELECT COUNT(*) FROM checkins WHERE team_id = ? AND checkin_date = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, teamId, date);
-        return count != null && count > 0;
-    }
-
-    private static class CheckinRowMapper implements RowMapper<Checkin> {
-        @Override
-        public Checkin mapRow(ResultSet rs, int rowNum) throws SQLException {
-            Checkin c = new Checkin();
-            c.setId(rs.getInt("id"));
-            c.setTeamId(rs.getInt("team_id"));
-            c.setCheckinDate(rs.getDate("checkin_date"));
-            c.setCoinsEarned(rs.getInt("coins_earned"));
-            c.setCreatedAt(rs.getTimestamp("created_at"));
-            return c;
-        }
+    default boolean hasCheckedInToday(int teamId, Date date) {
+        return countCheckinsOnDate(teamId, date) > 0;
     }
 }

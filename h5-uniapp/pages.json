@@ -34,6 +34,13 @@
         "navigationBarTitleText": "每日打卡",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/station/station",
+      "style": {
+        "navigationBarTitleText": "工位租赁",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

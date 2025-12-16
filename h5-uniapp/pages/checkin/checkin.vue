@@ -8,17 +8,17 @@
     <view class="stats-card glass-card">
       <view class="stat-item">
         <text class="stat-val">{{ currentStreak }}</text>
-        <text class="stat-label">连续打卡(天)</text>
+        <text class="stat-label"><text class="stat-icon">🔥</text> 连续打卡(天)</text>
       </view>
       <view class="stat-item">
         <text class="stat-val">{{ balance }}</text>
-        <text class="stat-label">当前积分</text>
+        <text class="stat-label"><text class="stat-icon">💰</text> 当前积分</text>
       </view>
     </view>
 
     <view class="calendar-card glass-card">
       <view class="calendar-header">
-        <text>{{ year }}年{{ month }}月</text>
+        <text class="calendar-title"><text class="calendar-icon">🗓️</text>{{ year }}年{{ month }}月</text>
       </view>
       <view class="week-row">
         <text v-for="d in ['日','一','二','三','四','五','六']" :key="d">{{ d }}</text>
@@ -37,7 +37,8 @@
 
     <view class="action-area">
       <button class="checkin-btn" @tap="handleCheckin" :disabled="todayChecked">
-        {{ todayChecked ? '今日已打卡' : '立即打卡' }}
+        <text v-if="!todayChecked" class="btn-icon">📷</text>
+        <text class="btn-text">{{ todayChecked ? '已打卡' : '立即打卡' }}</text>
       </button>
       <text class="tip-text" v-if="!todayChecked">连续打卡3天以上，每日奖励翻倍！</text>
     </view>
@@ -46,6 +47,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { baseUrl } from '../../common/config.js';
 
 const year = ref(new Date().getFullYear());
@@ -77,14 +79,17 @@ const fetchStatus = () => {
     },
     withCredentials: true, 
     success: (res) => {
-      if (res.data.code === 200) {
-        const data = res.data.data;
+      // 后端统一返回 ApiResponse: { success, message, data }
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        const data = res.data.data || {};
         currentStreak.value = data.currentStreak;
         balance.value = data.balance;
         hasFace.value = data.hasFace;
       } else if (res.statusCode === 401) {
         uni.showToast({ title: '登录已过期', icon: 'none' });
         setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 1500);
+      } else {
+        uni.showToast({ title: (res.data && res.data.message) || '获取状态失败', icon: 'none' });
       }
     }
   });
@@ -105,8 +110,8 @@ const fetchHistory = () => {
     },
     withCredentials: true,
     success: (res) => {
-      if (res.data.code === 200) {
-        generateCalendar(res.data.data);
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        generateCalendar(res.data.data || []);
       } else {
         generateCalendar([]);
       }
@@ -117,9 +122,30 @@ const fetchHistory = () => {
   });
 };
 
+// 将后端返回的日期字段尽量归一成 YYYY-MM-DD
+const normalizeToYmd = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') {
+    // 兼容 "2025-12-16" / "2025-12-16T00:00:00.000+08:00" 等
+    return value.slice(0, 10);
+  }
+  if (typeof value === 'number') {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return '';
+};
+
 const generateCalendar = (history) => {
   // 确保 history 是数组
   const checkinList = Array.isArray(history) ? history : [];
+
+  // 每次生成日历都重置一次今日状态，避免月切换/返回页面时状态残留
+  todayChecked.value = false;
   
   const firstDay = new Date(year.value, month.value - 1, 1).getDay();
   const lastDate = new Date(year.value, month.value, 0).getDate();
@@ -136,9 +162,9 @@ const generateCalendar = (history) => {
   for (let i = 1; i <= lastDate; i++) {
     const isToday = isCurrentMonth && i === today;
     // Check if this day is in history
-    // History dates are strings like "2025-12-15"
+    // 兼容后端日期序列化为字符串/时间戳/ISO
     const dateStr = `${year.value}-${String(month.value).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const checked = checkinList.some(h => h.checkinDate === dateStr);
+    const checked = checkinList.some(h => normalizeToYmd(h.checkinDate) === dateStr);
     
     if (isToday && checked) {
       todayChecked.value = true;
@@ -244,13 +270,31 @@ const sendCheckinRequest = (base64Image) => {
          setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 1500);
          return;
       }
-      if (checkRes.data.code === 200) {
-        uni.showToast({ title: checkRes.data.data.message, icon: 'none' });
+      if (checkRes.statusCode === 200 && checkRes.data && checkRes.data.success) {
+        // 打卡成功时，后端把奖励提示放在 data.message 里
+        const tip = (checkRes.data.data && checkRes.data.data.message) || checkRes.data.message || '打卡成功';
+        uni.showToast({ title: tip, icon: 'none' });
         todayChecked.value = true;
         fetchStatus();
         fetchHistory();
       } else {
-        uni.showToast({ title: checkRes.data.message, icon: 'none' });
+        const msg = (checkRes.data && checkRes.data.message) || '打卡失败';
+        // 兜底：如果前端 hasFace 状态未及时刷新，后端会返回“请先进行人脸录入”
+        if (msg.includes('人脸录入')) {
+          hasFace.value = false;
+          uni.showModal({
+            title: '需要先录入人脸',
+            content: msg,
+            confirmText: '去录入',
+            success: (r) => {
+              if (r.confirm) {
+                uni.navigateTo({ url: '/pages/face/register' });
+              }
+            }
+          });
+          return;
+        }
+        uni.showToast({ title: msg, icon: 'none' });
       }
     },
     fail: () => {
@@ -259,6 +303,14 @@ const sendCheckinRequest = (base64Image) => {
     }
   });
 };
+
+// 进入页面/从录入页返回时都刷新一次状态，确保 hasFace 最新
+onShow(() => {
+  const userInfo = uni.getStorageSync('userInfo');
+  if (!userInfo) return;
+  fetchStatus();
+  fetchHistory();
+});
 
 onMounted(() => {
   // 检查登录状态
@@ -273,92 +325,129 @@ onMounted(() => {
 
   // 先生成一个空的日历，防止网络请求慢或失败时页面空白
   generateCalendar([]);
-  fetchStatus();
-  fetchHistory();
 });
 </script>
 
-<style>
+<style lang="scss" scoped>
+@import '../../uni.scss';
+
+/*
+  打卡页视觉风格：沿用首页/全局 uni.scss 的玻璃拟态 + 渐变主色
+  目标：全屏自适应、信息层级清晰、交互更“轻”
+*/
+
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f6f7fb 0%, #e2e6f0 100%);
-  padding: 20px;
-  box-sizing: border-box;
+  padding: 30rpx;
+  padding-top: 80rpx;
+  justify-content: flex-start; /* 覆盖全局 container 的居中 */
+  gap: 24rpx;
 }
 
 .header {
+  width: 100%;
+  max-width: 680rpx;
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  padding-top: 20px;
+  margin-bottom: 8rpx;
 }
 
 .back-btn {
-  font-size: 24px;
-  margin-right: 15px;
-  color: #333;
+  font-size: 44rpx;
+  margin-right: 18rpx;
+  color: $text-main;
+  padding: 10rpx 16rpx;
+  border-radius: 16rpx;
+  transition: transform 0.15s ease;
+}
+
+.back-btn:active {
+  transform: scale(0.96);
 }
 
 .title {
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
-}
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-  margin-bottom: 20px;
-  padding: 20px;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: $text-main;
+  letter-spacing: 1rpx;
 }
 
 .stats-card {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 36rpx 28rpx;
   display: flex;
-  justify-content: space-around;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
 }
 
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
 .stat-val {
-  font-size: 24px;
-  font-weight: bold;
-  color: #4a90e2;
+  font-size: 52rpx;
+  font-weight: 900;
+  color: $primary;
+  line-height: 1;
 }
 
 .stat-label {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
+  font-size: 24rpx;
+  color: $text-light;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.stat-icon {
+  font-size: 26rpx;
+}
+
+.calendar-card {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 32rpx 28rpx;
 }
 
 .calendar-header {
-  text-align: center;
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 15px;
-  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 22rpx;
+}
+
+.calendar-title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: $text-main;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.calendar-icon {
+  font-size: 30rpx;
 }
 
 .week-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  margin-bottom: 10px;
-  color: #999;
-  font-size: 12px;
+  margin-bottom: 14rpx;
+  color: $text-light;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
+  gap: 14rpx;
 }
 
 .day-cell {
@@ -366,53 +455,90 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  font-size: 14px;
-  color: #333;
+  border-radius: $radius-full;
+  font-size: 28rpx;
+  color: $text-main;
   position: relative;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2rpx solid rgba(99, 102, 241, 0.06);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .day-cell.today {
-  background: rgba(74, 144, 226, 0.1);
-  color: #4a90e2;
-  font-weight: bold;
+  background: rgba(99, 102, 241, 0.12);
+  color: $primary;
+  font-weight: 800;
 }
 
 .day-cell.checked {
-  background: #4a90e2;
-  color: white;
+  background: $primary-gradient;
+  color: $white;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.day-cell:active {
+  transform: scale(0.96);
 }
 
 .check-mark {
   position: absolute;
-  bottom: 2px;
-  font-size: 10px;
+  bottom: 6rpx;
+  font-size: 20rpx;
+  animation: pop 0.2s ease-out;
 }
 
 .action-area {
-  margin-top: 40px;
+  width: 100%;
+  max-width: 680rpx;
+  margin-top: 18rpx;
   text-align: center;
 }
 
 .checkin-btn {
-  background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-  color: white;
-  border-radius: 30px;
-  padding: 10px 0;
-  font-size: 18px;
-  box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
+  width: 100%;
+  background: $primary-gradient;
+  color: $white;
+  border-radius: $radius-full;
+  padding: 26rpx 0;
+  font-size: 34rpx;
+  font-weight: 800;
+  box-shadow: 0 16rpx 34rpx rgba(99, 102, 241, 0.28);
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
 }
 
+.checkin-btn:active {
+  transform: scale(0.98);
+}
+
+/* 已打卡：保持“同色系”，但明显不可用 */
 .checkin-btn:disabled {
-  background: #ccc;
+  filter: grayscale(0.35);
+  opacity: 0.55;
   box-shadow: none;
+}
+
+.btn-icon {
+  font-size: 34rpx;
+}
+
+.btn-text {
+  font-size: 34rpx;
 }
 
 .tip-text {
   display: block;
-  margin-top: 15px;
-  font-size: 12px;
-  color: #666;
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: $text-light;
+}
+
+@keyframes pop {
+  from { transform: scale(0.7); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>

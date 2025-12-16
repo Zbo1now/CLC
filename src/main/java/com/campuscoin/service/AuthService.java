@@ -7,7 +7,6 @@ import com.campuscoin.util.PasswordUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.logging.Logger;
 
 @Service
@@ -41,8 +40,8 @@ public class AuthService {
             logger.warning("注册失败: 联系电话为空");
             throw new IllegalArgumentException("联系电话不能为空");
         }
-        Optional<Team> exists = teamDao.findByName(teamName.trim());
-        if (exists.isPresent()) {
+        Team exists = teamDao.findByName(teamName.trim());
+        if (exists != null) {
             logger.warning("注册失败: 团队名称已存在 - " + teamName);
             throw new IllegalStateException("团队名称已存在");
         }
@@ -53,13 +52,14 @@ public class AuthService {
         team.setContactName(contactName.trim());
         team.setContactPhone(contactPhone.trim());
         team.setBalance(INITIAL_COINS);
-        boolean ok = teamDao.createTeam(team);
-        if (!ok) {
+        int rows = teamDao.createTeam(team);
+        if (rows != 1) {
             logger.severe("注册失败: 数据库插入失败 - " + teamName);
             throw new IllegalStateException("注册团队失败，请稍后重试");
         }
         logger.info("团队注册成功: " + teamName);
-        return teamDao.findByName(teamName.trim()).orElse(team);
+        Team fresh = teamDao.findByName(teamName.trim());
+        return fresh != null ? fresh : team;
     }
 
     public Team login(String teamName, String password) {
@@ -68,13 +68,17 @@ public class AuthService {
             logger.warning("登录失败: 参数缺失");
             throw new IllegalArgumentException("团队名称和密码不能为空");
         }
-        Optional<Team> opt = teamDao.findByName(teamName.trim());
-        if (!opt.isPresent()) {
+        Team team = teamDao.findByName(teamName.trim());
+        if (team == null) {
             logger.warning("登录失败: 用户不存在 - " + teamName);
             throw new IllegalArgumentException("登录失败：用户不存在");
         }
-        Team team = opt.get();
-        boolean valid = PasswordUtil.verifyPassword(password, team.getPasswordHash());
+        String storedHash = team.getPasswordHash();
+        if (storedHash == null || storedHash.isEmpty()) {
+            logger.severe("登录失败: 密码 hash 缺失 - " + teamName);
+            throw new IllegalArgumentException("登录失败：账户未设置密码，请联系管理员");
+        }
+        boolean valid = PasswordUtil.verifyPassword(password, storedHash);
         if (!valid) {
             logger.warning("登录失败: 密码错误 - " + teamName);
             throw new IllegalArgumentException("登录失败：密码错误");

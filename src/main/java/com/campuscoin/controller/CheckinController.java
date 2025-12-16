@@ -19,7 +19,6 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/face")
@@ -55,8 +54,8 @@ public class CheckinController {
         logger.info("BOS upload result: team={}, file={}, url={}", teamName, fileName, bosUrl);
         
         if (bosUrl != null) {
-            boolean updated = teamDao.updateFaceImage(teamName, bosUrl);
-            if (updated) {
+            int updated = teamDao.updateFaceImage(teamName, bosUrl);
+            if (updated > 0) {
                 logger.info("人脸录入成功 (BOS -> DB): {} -> {}", teamName, bosUrl);
                 return ResponseEntity.ok(ApiResponse.ok("人脸录入成功", null));
             }
@@ -90,13 +89,16 @@ public class CheckinController {
             logger.warn("获取打卡状态失败: session/teamName 缺失");
             return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
         }
-        Optional<Team> teamOpt = teamDao.findByName(teamName);
-        if (teamOpt.isPresent()) {
-            Team team = teamOpt.get();
+        Team team = teamDao.findByName(teamName);
+        if (team != null) {
+            String faceImage = team.getFaceImage();
+            boolean hasFaceInfo = faceImage != null && !faceImage.isEmpty();
+            logger.info("查询人脸状态: {}，人脸字段 {}", teamName, hasFaceInfo ? "已录入" : "未录入");
             Map<String, Object> status = new HashMap<>();
-            status.put("hasFace", team.getFaceImage() != null && !team.getFaceImage().isEmpty());
+            status.put("hasFace", hasFaceInfo);
             status.put("currentStreak", team.getCurrentStreak());
             status.put("balance", team.getBalance());
+            status.put("faceImage", faceImage);
             logger.info("获取打卡状态成功: {}", teamName);
             return ResponseEntity.ok(ApiResponse.ok("获取成功", status));
         }
@@ -126,14 +128,16 @@ public class CheckinController {
         }
 
         // 获取当前用户信息以获取基准人脸照片
-        Optional<Team> teamOpt = teamDao.findByName(teamName);
-        if (!teamOpt.isPresent()) {
+        Team team = teamDao.findByName(teamName);
+        if (team == null) {
+            logger.warn("打卡失败: team 不存在 teamName={}", teamName);
             return ResponseEntity.badRequest().body(ApiResponse.fail("用户不存在"));
         }
-        Team team = teamOpt.get();
         String registeredFaceUrl = team.getFaceImage();
 
         if (registeredFaceUrl == null || registeredFaceUrl.isEmpty()) {
+            // 基准照未录入时，不允许进行比对打卡
+            logger.info("打卡被拒绝: 未录入基准人脸 teamName={}", teamName);
             return ResponseEntity.badRequest().body(ApiResponse.fail("请先进行人脸录入"));
         }
 
@@ -181,9 +185,8 @@ public class CheckinController {
         logger.info("刷脸登录搜索结果: {}", userId);
         
         if (userId != null) {
-            Optional<Team> teamOpt = teamDao.findByName(userId);
-            if (teamOpt.isPresent()) {
-                Team team = teamOpt.get();
+            Team team = teamDao.findByName(userId);
+            if (team != null) {
                 session.setAttribute("teamId", team.getId());
                 session.setAttribute("teamName", team.getTeamName());
                 

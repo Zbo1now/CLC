@@ -126,11 +126,12 @@ async function uploadFace() {
       },
       success: (res) => {
         uni.hideLoading();
-        if (res.statusCode === 200 && res.data.success) {
+        // 后端统一返回 ApiResponse: { success, message, data }
+        if (res.statusCode === 200 && res.data && res.data.success) {
           uni.showToast({ title: '录入成功', icon: 'success' });
           setTimeout(() => uni.navigateBack(), 1500);
         } else {
-          uni.showToast({ title: res.data.message || '录入失败', icon: 'none' });
+          uni.showToast({ title: (res.data && res.data.message) || '录入失败', icon: 'none' });
         }
       },
       fail: () => {

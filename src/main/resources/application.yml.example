@@ -30,3 +30,8 @@ baidu:
     secret-access-key: "YOUR_BOS_SECRET_KEY"
     endpoint: "http://bj.bcebos.com"
     bucket-name: "campus-coin-faces"
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: com.campuscoin.model
