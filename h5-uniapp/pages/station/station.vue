@@ -1,24 +1,25 @@
 <template>
   <view class="container">
-    <view class="header">
-      <view class="back-btn" @tap="goBack">←</view>
-      <text class="title">工位租赁</text>
-    </view>
-
-    <view class="tabs glass-card">
-      <view :class="['tab', activeTab === 'list' ? 'active' : '']" @tap="activeTab = 'list'">
-        <text class="tab-icon">🏢</text>
-        <text>工位列表</text>
+    <view class="shell">
+      <view class="header panel">
+        <view class="back-btn" @tap="goBack">←</view>
+        <text class="title">工位租赁</text>
       </view>
-      <view :class="['tab', activeTab === 'mine' ? 'active' : '']" @tap="activeTab = 'mine'">
-        <text class="tab-icon">🧾</text>
-        <text>我的租约</text>
-      </view>
-    </view>
 
-    <!-- 工位列表 -->
-    <view v-if="activeTab === 'list'" class="content">
-      <view class="glass-card list-card">
+      <view class="tabs glass-card panel">
+        <view :class="['tab', activeTab === 'list' ? 'active' : '']" @tap="activeTab = 'list'">
+          <text class="tab-icon">🏢</text>
+          <text>工位列表</text>
+        </view>
+        <view :class="['tab', activeTab === 'mine' ? 'active' : '']" @tap="activeTab = 'mine'">
+          <text class="tab-icon">🧾</text>
+          <text>我的租约</text>
+        </view>
+      </view>
+
+      <!-- 工位列表 -->
+      <view v-if="activeTab === 'list'" class="content panel">
+        <view class="glass-card list-card">
         <view class="list-header">
           <text class="list-title">全部工位</text>
         </view>
@@ -49,12 +50,12 @@
             </button>
           </view>
         </view>
+        </view>
       </view>
-    </view>
 
-    <!-- 我的租约 -->
-    <view v-else class="content">
-      <view class="glass-card lease-card">
+      <!-- 我的租约 -->
+      <view v-else class="content panel">
+        <view class="glass-card lease-card">
         <view class="lease-header">
           <text class="lease-title">当前租约</text>
         </view>
@@ -95,6 +96,7 @@
           <text class="hint">
             * 按自然月计费，续租会自动扣除虚拟币。
           </text>
+        </view>
         </view>
       </view>
     </view>
@@ -345,17 +347,40 @@ onShow(async () => {
 
 .container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.shell {
+  width: 100%;
+  box-sizing: border-box;
   padding: 30rpx;
   padding-top: 80rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   justify-content: flex-start;
   gap: 24rpx;
 }
 
+.panel {
+  width: 100%;
+  max-width: 640rpx;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
 .header {
   width: 100%;
-  max-width: 680rpx;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 20rpx;
 }
 
@@ -384,45 +409,45 @@ onShow(async () => {
 }
 
 .tabs {
-  width: 100%;
-  max-width: 680rpx;
   padding: 14rpx;
   display: flex;
-  gap: 12rpx;
+  gap: 14rpx;
+  border-radius: $radius-lg;
 }
 
 .tab {
   flex: 1;
-  border-radius: $radius-full;
-  padding: 20rpx 0;
-  font-size: 28rpx;
+  border-radius: $radius-lg;
+  padding: 18rpx 0;
   font-weight: 700;
   color: $text-light;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  background: rgba(241, 245, 249, 0.75);
+  gap: 10rpx;
+  background: rgba($bg-color, 0.8);
   transition: all 0.25s ease;
 }
 
 .tab.active {
-  background: $white;
   color: $primary;
   box-shadow: $shadow-sm;
-  transform: translateY(-2rpx);
+  background: rgba($white, 0.95);
 }
 
 .tab-icon {
-  font-size: 30rpx;
+  font-size: 34rpx;
 }
 
 .content {
   width: 100%;
-  max-width: 680rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .list-card, .lease-card {
+  width: 100%;
   padding: 32rpx 28rpx;
 }
 

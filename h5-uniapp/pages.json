@@ -43,6 +43,13 @@
       }
     },
     {
+      "path": "pages/device/device",
+      "style": {
+        "navigationBarTitleText": "设备租用",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/achievement/achievement",
       "style": {
         "navigationBarTitleText": "成果提交",

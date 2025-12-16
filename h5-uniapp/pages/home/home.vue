@@ -190,6 +190,10 @@ function handleAction(type) {
     uni.navigateTo({ url: '/pages/station/station' });
     return;
   }
+  if (type === 'device') {
+    uni.navigateTo({ url: '/pages/device/device' });
+    return;
+  }
   const actions = {
     device: '设备租用'
   };
