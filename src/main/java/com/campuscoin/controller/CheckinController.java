@@ -1,11 +1,12 @@
 package com.campuscoin.controller;
 
-import com.campuscoin.model.Team;
 import com.campuscoin.model.Checkin;
+import com.campuscoin.model.Team;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.service.BaiduService;
-import com.campuscoin.dao.TeamDao;
 import com.campuscoin.dao.CheckinDao;
+import com.campuscoin.dao.TeamDao;
+import com.campuscoin.util.SessionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -36,9 +37,14 @@ public class CheckinController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Void>> registerFace(@RequestBody FaceRequest req, HttpSession session) {
-        // 登录拦截器已确保 session 中存在 teamName
-        String teamName = (String) session.getAttribute("teamName");
+    public ResponseEntity<ApiResponse<Void>> registerFace(@RequestBody FaceRequest req,
+                                                        HttpServletRequest request,
+                                                        HttpSession session) {
+        String teamName = SessionHelper.resolveTeamName(request, session);
+        if (teamName == null) {
+            logger.warn("人脸录入失败: session/teamName 缺失");
+            return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
+        }
 
         logger.info("尝试为人脸录入: {}", teamName);
         
@@ -63,14 +69,11 @@ public class CheckinController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<ApiResponse<List<Checkin>>> getCheckinHistory(@RequestParam int year, @RequestParam int month, HttpServletRequest request, HttpSession session) {
-        Integer teamId = (session != null) ? (Integer) session.getAttribute("teamId") : null;
-        if (teamId == null) {
-            Object attr = request.getAttribute("teamId");
-            if (attr instanceof Integer) {
-                teamId = (Integer) attr;
-            }
-        }
+    public ResponseEntity<ApiResponse<List<Checkin>>> getCheckinHistory(@RequestParam int year,
+                                                                       @RequestParam int month,
+                                                                       HttpServletRequest request,
+                                                                       HttpSession session) {
+        Integer teamId = SessionHelper.resolveTeamId(request, session);
         if (teamId == null) {
             logger.warn("获取打卡历史失败: session/teamId 缺失");
             return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
@@ -82,10 +85,7 @@ public class CheckinController {
 
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getStatus(HttpServletRequest request, HttpSession session) {
-        String teamName = (session != null) ? (String) session.getAttribute("teamName") : null;
-        if (teamName == null) {
-            teamName = (String) request.getAttribute("teamName");
-        }
+        String teamName = SessionHelper.resolveTeamName(request, session);
         if (teamName == null) {
             logger.warn("获取打卡状态失败: session/teamName 缺失");
             return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
@@ -105,9 +105,15 @@ public class CheckinController {
     }
 
     @PostMapping("/checkin")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> checkIn(@RequestBody FaceRequest req, HttpSession session) {
-        String teamName = (String) session.getAttribute("teamName");
-        Integer teamId = (Integer) session.getAttribute("teamId");
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkIn(@RequestBody FaceRequest req,
+                                                                    HttpServletRequest request,
+                                                                    HttpSession session) {
+        String teamName = SessionHelper.resolveTeamName(request, session);
+        Integer teamId = SessionHelper.resolveTeamId(request, session);
+        if (teamName == null || teamId == null) {
+            logger.warn("打卡失败: session/team 缺失");
+            return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
+        }
         
         logger.info("尝试打卡: {}", teamName);
 
