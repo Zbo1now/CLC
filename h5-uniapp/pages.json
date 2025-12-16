@@ -6,6 +6,34 @@
         "navigationBarTitleText": "CampusCoin",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/face/register",
+      "style": {
+        "navigationBarTitleText": "人脸录入",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/face/login",
+      "style": {
+        "navigationBarTitleText": "刷脸登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/checkin/checkin",
+      "style": {
+        "navigationBarTitleText": "每日打卡",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

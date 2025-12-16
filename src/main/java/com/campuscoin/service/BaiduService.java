@@ -1,0 +1,164 @@
+package com.campuscoin.service;
+
+import com.baidu.aip.face.AipFace;
+import com.baidu.aip.face.MatchRequest;
+import com.baidubce.auth.DefaultBceCredentials;
+import com.baidubce.services.bos.BosClient;
+import com.baidubce.services.bos.BosClientConfiguration;
+import com.campuscoin.config.BaiduConfig;
+import com.campuscoin.util.LogUtil;
+import org.json.JSONObject;
+import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.logging.Logger;
+
+@Service
+public class BaiduService {
+    private static final Logger logger = LogUtil.getLogger(BaiduService.class);
+    
+    private final AipFace aipFace;
+    private final BosClient bosClient;
+    private final BaiduConfig config;
+
+    public BaiduService(BaiduConfig config) {
+        this.config = config;
+        
+        // 初始化人脸识别客户端
+        this.aipFace = new AipFace(
+            config.getFace().getAppId(),
+            config.getFace().getApiKey(),
+            config.getFace().getSecretKey()
+        );
+        
+        // 初始化 BOS 客户端
+        BosClientConfiguration bosConfig = new BosClientConfiguration();
+        bosConfig.setCredentials(new DefaultBceCredentials(
+            config.getBos().getAccessKeyId(),
+            config.getBos().getSecretAccessKey()
+        ));
+        bosConfig.setEndpoint(config.getBos().getEndpoint());
+        this.bosClient = new BosClient(bosConfig);
+    }
+
+    /**
+     * 注册人脸到百度人脸库
+     */
+    public boolean registerFace(String userId, String imageBase64) {
+        // 如果存在前缀则去除
+        if (imageBase64.contains(",")) {
+            imageBase64 = imageBase64.split(",")[1];
+        }
+
+        HashMap<String, String> options = new HashMap<>();
+        options.put("user_info", "registered_user");
+        options.put("quality_control", "NORMAL");
+        options.put("liveness_control", "LOW"); // 根据需求调整
+
+        JSONObject res = aipFace.addUser(
+            imageBase64, 
+            "BASE64", 
+            config.getFace().getGroupId(), 
+            userId, 
+            options
+        );
+
+        logger.info("Baidu Face Register Response: " + res.toString());
+        return res.has("error_code") && res.getInt("error_code") == 0;
+    }
+
+    /**
+     * 在人脸库中搜索人脸
+     * 如果找到高置信度的匹配，返回 userId，否则返回 null
+     */
+    public String searchFace(String imageBase64) {
+        if (imageBase64.contains(",")) {
+            imageBase64 = imageBase64.split(",")[1];
+        }
+
+        HashMap<String, Object> options = new HashMap<>();
+        options.put("quality_control", "NORMAL");
+        options.put("liveness_control", "LOW");
+        options.put("max_user_num", "1");
+
+        JSONObject res = aipFace.search(
+            imageBase64, 
+            "BASE64", 
+            config.getFace().getGroupId(), 
+            options
+        );
+
+        logger.info("Baidu Face Search Response: " + res.toString());
+
+        if (res.has("error_code") && res.getInt("error_code") == 0) {
+            JSONObject result = res.getJSONObject("result");
+            if (result.has("user_list")) {
+                JSONObject bestMatch = result.getJSONArray("user_list").getJSONObject(0);
+                double score = bestMatch.getDouble("score");
+                if (score > 80) { // 置信度阈值
+                    return bestMatch.getString("user_id");
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 人脸比对 (1:1)
+     * @param imageBase64 现场采集的人脸
+     * @param remoteUrl 数据库中存储的基准人脸URL
+     */
+    public boolean matchFace(String imageBase64, String remoteUrl) {
+        if (imageBase64.contains(",")) {
+            imageBase64 = imageBase64.split(",")[1];
+        }
+
+        MatchRequest req1 = new MatchRequest(imageBase64, "BASE64");
+        MatchRequest req2 = new MatchRequest(remoteUrl, "URL");
+        
+        ArrayList<MatchRequest> requests = new ArrayList<>();
+        requests.add(req1);
+        requests.add(req2);
+
+        try {
+            JSONObject res = aipFace.match(requests);
+            logger.info("Baidu Face Match Response: " + res.toString());
+
+            if (res.has("result") && !res.isNull("result")) {
+                JSONObject result = res.getJSONObject("result");
+                double score = result.getDouble("score");
+                // 推荐阈值80，可根据实际情况调整
+                return score > 80;
+            }
+        } catch (Exception e) {
+            logger.severe("Face Match Failed: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * 上传图片到 BOS
+     */
+    public String uploadToBos(String imageBase64, String fileName) {
+        try {
+            if (imageBase64.contains(",")) {
+                imageBase64 = imageBase64.split(",")[1];
+            }
+            byte[] bytes = Base64.getDecoder().decode(imageBase64);
+            
+            bosClient.putObject(
+                config.getBos().getBucketName(), 
+                fileName, 
+                new ByteArrayInputStream(bytes)
+            );
+            
+            return config.getBos().getEndpoint() + "/" + config.getBos().getBucketName() + "/" + fileName;
+        } catch (Exception e) {
+            logger.severe("BOS Upload Failed: " + e.getMessage());
+            return null;
+        }
+    }
+}

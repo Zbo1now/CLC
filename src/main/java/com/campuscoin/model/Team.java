@@ -8,25 +8,32 @@ public class Team {
     private String passwordHash;
     private String contactName;
     private String contactPhone;
+    private String faceImage;
     private int balance;
+    private int currentStreak;
+    private java.sql.Date lastCheckinDate;
     private Timestamp createdAt;
 
     public Team() {
     }
 
-    public Team(int id, String teamName, String passwordHash, String contactName, String contactPhone, int balance, Timestamp createdAt) {
+    public Team(int id, String teamName, String passwordHash, String contactName, String contactPhone, String faceImage, int balance, int currentStreak, java.sql.Date lastCheckinDate, Timestamp createdAt) {
         this.id = id;
         this.teamName = teamName;
         this.passwordHash = passwordHash;
         this.contactName = contactName;
         this.contactPhone = contactPhone;
+        this.faceImage = faceImage;
         this.balance = balance;
+        this.currentStreak = currentStreak;
+        this.lastCheckinDate = lastCheckinDate;
         this.createdAt = createdAt;
     }
 
     public int getId() {
         return id;
     }
+
 
     public void setId(int id) {
         this.id = id;
@@ -64,12 +71,36 @@ public class Team {
         this.contactPhone = contactPhone;
     }
 
+    public String getFaceImage() {
+        return faceImage;
+    }
+
+    public void setFaceImage(String faceImage) {
+        this.faceImage = faceImage;
+    }
+
     public int getBalance() {
         return balance;
     }
 
     public void setBalance(int balance) {
         this.balance = balance;
+    }
+
+    public int getCurrentStreak() {
+        return currentStreak;
+    }
+
+    public void setCurrentStreak(int currentStreak) {
+        this.currentStreak = currentStreak;
+    }
+
+    public java.sql.Date getLastCheckinDate() {
+        return lastCheckinDate;
+    }
+
+    public void setLastCheckinDate(java.sql.Date lastCheckinDate) {
+        this.lastCheckinDate = lastCheckinDate;
     }
 
     public Timestamp getCreatedAt() {

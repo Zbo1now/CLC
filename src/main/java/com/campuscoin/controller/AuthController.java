@@ -3,6 +3,9 @@ package com.campuscoin.controller;
 import com.campuscoin.model.Team;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.service.AuthService;
+import com.campuscoin.util.SessionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -22,6 +25,7 @@ import java.util.Map;
 @Validated
 public class AuthController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -30,16 +34,20 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Map<String, Object>>> register(@RequestBody RegisterRequest req) {
+        logger.info("尝试注册团队: {}", req.getTeamName());
         try {
             Team team = authService.register(req.getTeamName(), req.getPassword(), req.getContactName(), req.getContactPhone());
             Map<String, Object> data = new HashMap<>();
             data.put("teamName", team.getTeamName());
             data.put("balance", team.getBalance());
+            logger.info("团队注册成功: {}", team.getTeamName());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.ok("注册成功", data));
         } catch (IllegalArgumentException e) {
+            logger.error("注册失败 (参数错误): {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
         } catch (IllegalStateException e) {
+            logger.error("注册失败 (状态错误): {}", e.getMessage());
             HttpStatus status = "团队名称已存在".equals(e.getMessage()) ? HttpStatus.CONFLICT : HttpStatus.INTERNAL_SERVER_ERROR;
             return ResponseEntity.status(status).body(ApiResponse.fail(e.getMessage()));
         }
@@ -47,15 +55,29 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody LoginRequest req, HttpSession session) {
+        logger.info("尝试登录团队: {}", req.getTeamName());
         try {
             Team team = authService.login(req.getTeamName(), req.getPassword());
+            
+            // 1. 标准 Session 存储
             session.setAttribute("teamId", team.getId());
             session.setAttribute("teamName", team.getTeamName());
+            
+            // 2. 自定义 SessionManager 存储 (用于 Header 传递)
+            SessionManager.createSession(session.getId());
+            SessionManager.setAttribute(session.getId(), "teamId", team.getId());
+            SessionManager.setAttribute(session.getId(), "teamName", team.getTeamName());
+
             Map<String, Object> data = new HashMap<>();
             data.put("teamName", team.getTeamName());
             data.put("balance", team.getBalance());
+            // 返回 Session ID 供前端手动维护
+            data.put("sessionId", session.getId());
+            
+            logger.info("团队登录成功: {}", team.getTeamName());
             return ResponseEntity.ok(ApiResponse.ok("登录成功", data));
         } catch (IllegalArgumentException e) {
+            logger.warn("团队登录失败: {}. 原因: {}", req.getTeamName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
         }
     }

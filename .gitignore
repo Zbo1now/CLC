@@ -17,3 +17,4 @@ target/
 h5-uniapp/unpackage/
 h5-uniapp/node_modules/
 .DS_Store
+src/main/resources/application.yml
