@@ -418,7 +418,7 @@ onShow(async () => {
 .tab {
   flex: 1;
   border-radius: $radius-lg;
-  padding: 18rpx 0;
+  padding: 16rpx 0;
   font-weight: 700;
   color: $text-light;
   display: flex;
@@ -427,6 +427,7 @@ onShow(async () => {
   gap: 10rpx;
   background: rgba($bg-color, 0.8);
   transition: all 0.25s ease;
+  font-size: 26rpx;
 }
 
 .tab.active {
@@ -436,7 +437,7 @@ onShow(async () => {
 }
 
 .tab-icon {
-  font-size: 34rpx;
+  font-size: 30rpx;
 }
 
 .content {

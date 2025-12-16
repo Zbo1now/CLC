@@ -54,6 +54,10 @@
           <view class="icon-box color-3">🧑‍💼</view>
           <text class="grid-label">值班任务</text>
         </view>
+        <view class="grid-item" @tap="handleAction('training')">
+          <view class="icon-box color-4">🎓</view>
+          <text class="grid-label">培训活动</text>
+        </view>
       </view>
     </view>
 
@@ -224,6 +228,10 @@ function handleAction(type) {
   }
   if (type === 'duty') {
     uni.navigateTo({ url: '/pages/duty/duty' });
+    return;
+  }
+  if (type === 'training') {
+    uni.navigateTo({ url: '/pages/training/training' });
     return;
   }
   if (type === 'station') {

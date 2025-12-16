@@ -83,6 +83,20 @@
         "navigationBarTitleText": "值班任务",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/training/training",
+      "style": {
+        "navigationBarTitleText": "培训活动",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/training/detail",
+      "style": {
+        "navigationBarTitleText": "活动详情",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {

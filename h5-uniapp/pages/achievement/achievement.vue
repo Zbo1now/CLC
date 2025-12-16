@@ -505,12 +505,13 @@ onShow(async () => {
   align-items: center;
   justify-content: center;
   gap: 10rpx;
-  padding: 18rpx 0;
+  padding: 16rpx 0;
   border-radius: $radius-lg;
   color: $text-light;
   background: rgba($bg-color, 0.8);
   transition: all 0.25s ease;
   font-weight: 700;
+  font-size: 26rpx;
 }
 
 .tab.active {
@@ -520,7 +521,7 @@ onShow(async () => {
 }
 
 .tab-icon {
-  font-size: 34rpx;
+  font-size: 30rpx;
 }
 
 .content {
