@@ -75,6 +75,10 @@
           <view class="icon-box color-5">📷</view>
           <text class="grid-label">器材借用</text>
         </view>
+        <view class="grid-item" @tap="handleAction('venue')">
+          <view class="icon-box color-1">🏛️</view>
+          <text class="grid-label">场地短租</text>
+        </view>
       </view>
     </view>
 
@@ -226,6 +230,10 @@ function handleAction(type) {
     uni.navigateTo({ url: '/pages/equipment/equipment' });
     return;
   }
+  if (type === 'venue') {
+    uni.navigateTo({ url: '/pages/venue/venue' });
+    return;
+  }
   const actions = {
     device: '设备租用'
   };
@@ -331,7 +339,9 @@ function submitCheckIn(base64) {
 
 .bulletin-card {
   background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
-  padding: 40rpx;
+  /* 与下方模块卡片左右边界对齐 */
+  margin: 0;
+  padding: 34rpx 28rpx;
 }
 
 .module-card {
