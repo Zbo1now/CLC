@@ -35,3 +35,7 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
   type-aliases-package: com.campuscoin.model
+
+# 管理员接口鉴权（后续PC后台可复用）：请求头携带 X-Admin-Token
+admin:
+  token: "CHANGE_ME_ADMIN_TOKEN"

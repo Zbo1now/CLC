@@ -47,6 +47,12 @@ public interface TeamDao {
     @Update("UPDATE teams SET balance = balance - #{amount} WHERE id = #{teamId} AND balance >= #{amount}")
     int deductBalanceIfEnough(@Param("teamId") int teamId, @Param("amount") int amount);
 
+    /**
+     * 原子加币：用于审核通过发放奖励。
+     */
+    @Update("UPDATE teams SET balance = balance + #{amount} WHERE id = #{teamId}")
+    int addBalance(@Param("teamId") int teamId, @Param("amount") int amount);
+
     static String describe(Team team) {
         if (team == null) {
             return "null";

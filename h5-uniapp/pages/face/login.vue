@@ -136,9 +136,21 @@ async function loginFace() {
 }
 
 .back-btn {
-  font-size: 40rpx;
-  color: #333;
-  padding: 10rpx 20rpx;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($white, 0.7);
+  box-shadow: $shadow-sm;
+  font-size: 36rpx;
+  color: $text-main;
+  transition: transform 0.15s ease;
+}
+
+.back-btn:active {
+  transform: scale(0.96);
 }
 
 .camera-box {

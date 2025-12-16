@@ -41,6 +41,13 @@
         "navigationBarTitleText": "工位租赁",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/achievement/achievement",
+      "style": {
+        "navigationBarTitleText": "成果提交",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {

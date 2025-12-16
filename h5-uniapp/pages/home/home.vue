@@ -182,12 +182,15 @@ function handleAction(type) {
     uni.navigateTo({ url: '/pages/checkin/checkin' });
     return;
   }
+  if (type === 'achievement') {
+    uni.navigateTo({ url: '/pages/achievement/achievement' });
+    return;
+  }
   if (type === 'station') {
     uni.navigateTo({ url: '/pages/station/station' });
     return;
   }
   const actions = {
-    achievement: '成果提交',
     device: '设备租用'
   };
   uni.showToast({ title: actions[type] + '即将上线', icon: 'none' });

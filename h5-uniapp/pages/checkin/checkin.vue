@@ -349,15 +349,21 @@ onMounted(() => {
   max-width: 680rpx;
   display: flex;
   align-items: center;
+  gap: 20rpx;
   margin-bottom: 8rpx;
 }
 
 .back-btn {
-  font-size: 44rpx;
-  margin-right: 18rpx;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($white, 0.7);
+  box-shadow: $shadow-sm;
+  font-size: 36rpx;
   color: $text-main;
-  padding: 10rpx 16rpx;
-  border-radius: 16rpx;
   transition: transform 0.15s ease;
 }
 
