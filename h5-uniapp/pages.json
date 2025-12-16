@@ -76,6 +76,13 @@
         "navigationBarTitleText": "流水明细",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/duty/duty",
+      "style": {
+        "navigationBarTitleText": "值班任务",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {

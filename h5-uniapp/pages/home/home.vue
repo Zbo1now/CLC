@@ -50,6 +50,10 @@
           <view class="icon-box color-2">📝</view>
           <text class="grid-label">成果提交</text>
         </view>
+        <view class="grid-item" @tap="handleAction('duty')">
+          <view class="icon-box color-3">🧑‍💼</view>
+          <text class="grid-label">值班任务</text>
+        </view>
       </view>
     </view>
 
@@ -216,6 +220,10 @@ function handleAction(type) {
   }
   if (type === 'achievement') {
     uni.navigateTo({ url: '/pages/achievement/achievement' });
+    return;
+  }
+  if (type === 'duty') {
+    uni.navigateTo({ url: '/pages/duty/duty' });
     return;
   }
   if (type === 'station') {
