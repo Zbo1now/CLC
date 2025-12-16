@@ -15,16 +15,16 @@
       }
     },
     {
-      "path": "pages/face/register",
+      "path": "pages/equipment/equipment",
       "style": {
-        "navigationBarTitleText": "人脸录入",
+        "navigationBarTitleText": "器材借用",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/face/login",
+      "path": "pages/face/register",
       "style": {
-        "navigationBarTitleText": "刷脸登录",
+        "navigationBarTitleText": "人脸录入",
         "navigationStyle": "custom"
       }
     },

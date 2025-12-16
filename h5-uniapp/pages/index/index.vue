@@ -21,15 +21,12 @@
         <view class="form-group">
           <view class="input-wrapper">
             <text class="input-icon">🔒</text>
-            <input class="input" v-model="loginForm.password" placeholder="请输入密码" password />
+            <input class="input" v-model="loginForm.password" placeholder="请输入密码" password confirm-type="go" @confirm="submitLogin" />
           </view>
         </view>
         <button class="btn-submit" @tap="submitLogin">
           <text>🚀</text> 立即登录
         </button>
-        <view class="face-login-link" @tap="goFaceLogin">
-           <text>📸</text> 尝试刷脸登录
-        </view>
         <view class="footer-hint">未注册？点击上方“注册”加入我们</view>
       </view>
 
@@ -74,10 +71,6 @@ import { baseUrl } from '../../common/config.js';
 const activeTab = ref('login');
 const loginForm = ref({ teamName: '', password: '' });
 const registerForm = ref({ teamName: '', password: '', contactName: '', contactPhone: '' });
-
-function goFaceLogin() {
-  uni.navigateTo({ url: '/pages/face/login' });
-}
 
 function switchTab(tab) {
   activeTab.value = tab;
@@ -175,16 +168,4 @@ async function submitRegister() {
 
 <style lang="scss" scoped>
 @import '../../uni.scss';
-
-.face-login-link {
-  text-align: center;
-  margin-top: 24rpx;
-  color: $primary;
-  font-size: 28rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-}
 </style>

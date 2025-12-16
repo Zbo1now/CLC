@@ -84,9 +84,6 @@
               <text class="btn-icon">🚪</text>
               <text class="btn-text">退出登录</text>
             </button>
-            <button class="ghost-btn" @tap="goFaceRegister">
-              <text class="btn-text">人脸录入</text>
-            </button>
           </view>
 
           <view class="hint">* 退出后需要重新刷脸/账号登录</view>
@@ -182,10 +179,6 @@ const logout = () => {
       uni.reLaunch({ url: '/pages/index/index' });
     }
   });
-};
-
-const goFaceRegister = () => {
-  uni.navigateTo({ url: '/pages/face/register' });
 };
 
 function handleRecharge() {

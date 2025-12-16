@@ -71,6 +71,10 @@
           <view class="icon-box color-4">🛠️</view>
           <text class="grid-label">设备租用</text>
         </view>
+        <view class="grid-item" @tap="handleAction('equipment')">
+          <view class="icon-box color-5">📷</view>
+          <text class="grid-label">器材借用</text>
+        </view>
       </view>
     </view>
 
@@ -216,6 +220,10 @@ function handleAction(type) {
   }
   if (type === 'device') {
     uni.navigateTo({ url: '/pages/device/device' });
+    return;
+  }
+  if (type === 'equipment') {
+    uni.navigateTo({ url: '/pages/equipment/equipment' });
     return;
   }
   const actions = {
@@ -415,6 +423,7 @@ function submitCheckIn(base64) {
       &.color-2 { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
       &.color-3 { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
       &.color-4 { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+      &.color-5 { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
     }
     
     .grid-label {
