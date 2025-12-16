@@ -220,7 +220,7 @@ const refreshAll = async () => {
 const confirmRent = (s) => {
   uni.showModal({
     title: '确认租用',
-    content: `租用工位 ${s.stationCode}\n月租：${s.monthlyRent} 币\n将立即扣费。`,
+    content: `租用工位 ${s.stationCode}\n月租：${s.monthlyRent} 币`,
     confirmText: '确认租用',
     success: (r) => {
       if (r.confirm) rentStation(s.id);

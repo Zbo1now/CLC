@@ -75,17 +75,75 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { baseUrl } from '../../common/config.js';
 
 const balance = ref(0);
 const notification = ref('您的 3D 打印预约即将开始！');
-const transactions = ref([
-  { desc: '日常打卡', amount: 10, date: '10:30' },
-  { desc: '工位租赁', amount: -50, date: '昨天' },
-  { desc: '专利受理奖励', amount: 200, date: '12-12' },
-  { desc: '购买耗材', amount: -30, date: '12-10' },
-  { desc: '项目路演奖励', amount: 100, date: '12-08' }
-]);
+const transactions = ref([]);
+
+const getSessionId = () => {
+  let sessionId = '';
+  const cookieStr = uni.getStorageSync('cookie');
+  if (cookieStr && cookieStr.includes('JSESSIONID=')) {
+    sessionId = cookieStr.split('JSESSIONID=')[1].split(';')[0];
+  }
+  return sessionId;
+};
+
+const formatTxnTime = (createdAt) => {
+  if (!createdAt) return '';
+  const d = new Date(createdAt);
+  if (Number.isNaN(d.getTime())) return String(createdAt).slice(0, 10);
+
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+
+  if (sameDay) {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const fetchSummary = () => {
+  const sessionId = getSessionId();
+  return new Promise((resolve) => {
+    uni.request({
+      url: `${baseUrl}/api/teams/me/summary`,
+      method: 'GET',
+      header: { 'X-Session-Id': sessionId },
+      withCredentials: true,
+      success: (res) => {
+        if (res.statusCode === 401) {
+          uni.showToast({ title: '登录已过期', icon: 'none' });
+          setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 1200);
+          resolve();
+          return;
+        }
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          const data = res.data.data || {};
+          balance.value = data.balance ?? 0;
+
+          const list = Array.isArray(data.transactions) ? data.transactions : [];
+          transactions.value = list.map(t => ({
+            desc: t.description,
+            amount: t.amount,
+            date: formatTxnTime(t.createdAt)
+          }));
+
+          // 同步到本地缓存，供其他页面兜底展示
+          uni.setStorageSync('teamBalance', balance.value);
+        }
+        resolve();
+      },
+      fail: () => {
+        resolve();
+      }
+    });
+  });
+};
 
 onMounted(() => {
   // 检查登录状态
@@ -98,12 +156,17 @@ onMounted(() => {
     return;
   }
 
-  // 获取存储的余额信息（实际应从后端获取最新）
+  // 兜底：先用本地缓存顶一下，避免白屏；真实数据在 onShow 刷新
   const storedBalance = uni.getStorageSync('teamBalance');
-  if (storedBalance) {
+  if (storedBalance !== '' && storedBalance !== null && storedBalance !== undefined) {
     balance.value = storedBalance;
   }
-  // 这里后续可以调用后端API刷新余额和流水
+});
+
+onShow(async () => {
+  const userInfo = uni.getStorageSync('userInfo');
+  if (!userInfo) return;
+  await fetchSummary();
 });
 
 function handleRecharge() {

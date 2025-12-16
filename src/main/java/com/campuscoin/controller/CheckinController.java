@@ -4,6 +4,7 @@ import com.campuscoin.model.Checkin;
 import com.campuscoin.model.Team;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.service.BaiduService;
+import com.campuscoin.service.TransactionService;
 import com.campuscoin.dao.CheckinDao;
 import com.campuscoin.dao.TeamDao;
 import com.campuscoin.util.SessionHelper;
@@ -28,11 +29,13 @@ public class CheckinController {
     private final BaiduService baiduService;
     private final TeamDao teamDao;
     private final CheckinDao checkinDao;
+    private final TransactionService transactionService;
 
-    public CheckinController(BaiduService baiduService, TeamDao teamDao, CheckinDao checkinDao) {
+    public CheckinController(BaiduService baiduService, TeamDao teamDao, CheckinDao checkinDao, TransactionService transactionService) {
         this.baiduService = baiduService;
         this.teamDao = teamDao;
         this.checkinDao = checkinDao;
+        this.transactionService = transactionService;
     }
 
     @PostMapping("/register")
@@ -130,14 +133,11 @@ public class CheckinController {
         // 获取当前用户信息以获取基准人脸照片
         Team team = teamDao.findByName(teamName);
         if (team == null) {
-            logger.warn("打卡失败: team 不存在 teamName={}", teamName);
             return ResponseEntity.badRequest().body(ApiResponse.fail("用户不存在"));
         }
         String registeredFaceUrl = team.getFaceImage();
 
         if (registeredFaceUrl == null || registeredFaceUrl.isEmpty()) {
-            // 基准照未录入时，不允许进行比对打卡
-            logger.info("打卡被拒绝: 未录入基准人脸 teamName={}", teamName);
             return ResponseEntity.badRequest().body(ApiResponse.fail("请先进行人脸录入"));
         }
 
@@ -164,6 +164,15 @@ public class CheckinController {
             // 更新数据库
             checkinDao.create(new Checkin(teamId, sqlDate, totalReward));
             teamDao.updateCheckinStatus(teamId, team.getBalance() + totalReward, streak, sqlDate);
+
+            // 记录流水：正向入账
+            try {
+                String desc = bonus > 0 ? ("日常打卡 + 连续奖励") : "日常打卡";
+                transactionService.record(teamId, "CHECKIN", totalReward, desc);
+            } catch (Exception e) {
+                // 流水失败不影响打卡主流程，但需要有日志便于排查
+                logger.error("打卡流水记录失败: teamId={}, reward={}", teamId, totalReward, e);
+            }
             
             Map<String, Object> result = new HashMap<>();
             result.put("coinsEarned", totalReward);

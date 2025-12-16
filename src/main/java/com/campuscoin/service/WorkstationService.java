@@ -5,6 +5,7 @@ import com.campuscoin.dao.WorkstationDao;
 import com.campuscoin.dao.WorkstationLeaseDao;
 import com.campuscoin.model.Workstation;
 import com.campuscoin.model.WorkstationLease;
+import com.campuscoin.service.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,11 +23,13 @@ public class WorkstationService {
     private final WorkstationDao workstationDao;
     private final WorkstationLeaseDao leaseDao;
     private final TeamDao teamDao;
+    private final TransactionService transactionService;
 
-    public WorkstationService(WorkstationDao workstationDao, WorkstationLeaseDao leaseDao, TeamDao teamDao) {
+    public WorkstationService(WorkstationDao workstationDao, WorkstationLeaseDao leaseDao, TeamDao teamDao, TransactionService transactionService) {
         this.workstationDao = workstationDao;
         this.leaseDao = leaseDao;
         this.teamDao = teamDao;
+        this.transactionService = transactionService;
     }
 
     public List<Workstation> listWorkstationsForCurrentMonth() {
@@ -82,6 +85,14 @@ public class WorkstationService {
         lease.setStatus("ACTIVE");
 
         leaseDao.create(lease);
+
+        // 记录流水：负向支出
+        try {
+            String desc = "工位租赁 " + workstation.getStationCode() + " (" + months + "个月)";
+            transactionService.record(teamId, "WORKSTATION_RENT", -totalCost, desc);
+        } catch (Exception e) {
+            logger.error("租赁流水记录失败: teamId={}, workstationId={}, cost={}", teamId, workstationId, totalCost, e);
+        }
 
         logger.info("工位租赁成功: teamId={}, workstationId={}, months={}, cost={}, period={}~{}",
                 teamId, workstationId, months, totalCost, startMonth, endMonth);
@@ -141,6 +152,16 @@ public class WorkstationService {
         Date finalEnd = newEnd;
         int newTotalCost = locked.getTotalCost() + totalCost;
         leaseDao.updateEndMonthAndCost(locked.getId(), finalEnd, newTotalCost);
+
+        // 记录流水：负向支出
+        try {
+            Workstation ws = workstationDao.findById(locked.getWorkstationId());
+            String code = (ws != null) ? ws.getStationCode() : String.valueOf(locked.getWorkstationId());
+            String desc = "工位续租 " + code + " (" + months + "个月)";
+            transactionService.record(teamId, "WORKSTATION_RENEW", -totalCost, desc);
+        } catch (Exception e) {
+            logger.error("续租流水记录失败: teamId={}, leaseId={}, cost={}", teamId, locked.getId(), totalCost, e);
+        }
 
         logger.info("工位续租成功: teamId={}, leaseId={}, workstationId={}, months={}, cost={}, newEnd={}",
                 teamId, locked.getId(), locked.getWorkstationId(), months, totalCost, finalEnd);

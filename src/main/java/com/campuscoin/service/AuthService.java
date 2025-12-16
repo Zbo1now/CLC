@@ -2,6 +2,7 @@ package com.campuscoin.service;
 
 import com.campuscoin.dao.TeamDao;
 import com.campuscoin.model.Team;
+import com.campuscoin.service.TransactionService;
 import com.campuscoin.util.LogUtil;
 import com.campuscoin.util.PasswordUtil;
 import org.springframework.stereotype.Service;
@@ -16,9 +17,11 @@ public class AuthService {
     private static final int INITIAL_COINS = 500;
 
     private final TeamDao teamDao;
+    private final TransactionService transactionService;
 
-    public AuthService(TeamDao teamDao) {
+    public AuthService(TeamDao teamDao, TransactionService transactionService) {
         this.teamDao = teamDao;
+        this.transactionService = transactionService;
     }
 
     @Transactional
@@ -57,6 +60,25 @@ public class AuthService {
             logger.severe("注册失败: 数据库插入失败 - " + teamName);
             throw new IllegalStateException("注册团队失败，请稍后重试");
         }
+
+        // 注册赠送虚拟币：记录一条入账流水，供首页展示
+        try {
+            int teamId = team.getId();
+            if (teamId <= 0) {
+                Team tmp = teamDao.findByName(teamName.trim());
+                if (tmp != null) {
+                    teamId = tmp.getId();
+                }
+            }
+            if (teamId > 0) {
+                transactionService.record(teamId, "REGISTER_BONUS", INITIAL_COINS, "注册赠送");
+            } else {
+                logger.warning("注册奖励流水未写入: teamId 未获取到 teamName=" + teamName);
+            }
+        } catch (Exception e) {
+            logger.warning("注册奖励流水写入失败: " + e.getMessage());
+        }
+
         logger.info("团队注册成功: " + teamName);
         Team fresh = teamDao.findByName(teamName.trim());
         return fresh != null ? fresh : team;
