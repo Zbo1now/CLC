@@ -107,9 +107,11 @@ public interface AdminParticipationDao {
             "  review_status = 'APPROVED', " +
             "  status = 'APPROVED', " +
             "  reviewed_by = #{reviewedBy}, " +
-            "  reviewed_at = NOW() " +
+            "  reviewed_at = NOW(), " +
+            "  coins_rewarded = #{coinsRewarded}, " +
+            "  coins_rewarded_at = NOW() " +
             "WHERE id = #{id} AND review_status = 'PENDING'")
-    int approve(@Param("id") Integer id, @Param("reviewedBy") String reviewedBy);
+    int approve(@Param("id") Integer id, @Param("reviewedBy") String reviewedBy, @Param("coinsRewarded") Integer coinsRewarded);
 
     /**
      * 审核驳回参与申请

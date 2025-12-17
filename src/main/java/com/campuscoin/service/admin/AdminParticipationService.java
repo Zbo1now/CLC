@@ -133,8 +133,11 @@ public class AdminParticipationService {
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
 
-        // 1. 更新参与记录状态
-        int updated = adminParticipationDao.approve(id, adminUsername);
+        // 确保inUsername不为null
+        String reviewer = (adminUsername != null && !adminUsername.isEmpty()) ? adminUsername : "admin";
+
+        // 1. 更新参与记录状态（包括发币金额）
+        int updated = adminParticipationDao.approve(id, reviewer, activity.getRewardCoins());
         if (updated == 0) {
             logger.error("更新参与记录失败: id={}", id);
             return false;
