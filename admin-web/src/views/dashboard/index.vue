@@ -17,8 +17,8 @@
           <el-icon><UserFilled /></el-icon>
         </div>
         <div class="metric-content">
-          <div class="metric-label">团队总数/激活</div>
-          <div class="metric-value">{{ teams.totalTeams }}/{{ teams.activatedTeams }}</div>
+          <div class="metric-label">团队总数</div>
+          <div class="metric-value">{{ teams.totalTeams }}</div>
         </div>
       </div>
       

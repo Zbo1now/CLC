@@ -71,7 +71,6 @@
         </el-button>
         <div class="stats">
           <el-tag type="info">
-            <el-icon><Document /></el-icon>
             共 {{ pagination.total }} 条记录
           </el-tag>
         </div>
