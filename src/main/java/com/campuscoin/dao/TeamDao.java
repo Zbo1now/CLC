@@ -53,6 +53,12 @@ public interface TeamDao {
     @Update("UPDATE teams SET balance = balance + #{amount} WHERE id = #{teamId}")
     int addBalance(@Param("teamId") int teamId, @Param("amount") int amount);
 
+    /**
+     * 更新团队密码哈希（管理员重置密码）
+     */
+    @Update("UPDATE teams SET password_hash = #{passwordHash} WHERE id = #{teamId}")
+    int updatePasswordHash(@Param("teamId") int teamId, @Param("passwordHash") String passwordHash);
+
     static String describe(Team team) {
         if (team == null) {
             return "null";

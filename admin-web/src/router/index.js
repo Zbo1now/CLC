@@ -28,6 +28,12 @@ const routes = [
         meta: { title: '团队管理', icon: 'UserFilled' }
       },
       {
+        path: 'team/:id',
+        name: 'TeamDetail',
+        component: () => import('@/views/team/detail.vue'),
+        meta: { title: '团队详情', hidden: true }
+      },
+      {
         path: 'transaction',
         name: 'Transaction',
         component: () => import('@/views/transaction/index.vue'),
