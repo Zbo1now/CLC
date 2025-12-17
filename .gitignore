@@ -18,3 +18,10 @@ h5-uniapp/unpackage/
 h5-uniapp/node_modules/
 .DS_Store
 src/main/resources/application.yml
+
+# Node / Admin Web
+node_modules/
+admin-web/dist/
+admin-web/.vite/
+admin-web/.env
+admin-web/.env.*

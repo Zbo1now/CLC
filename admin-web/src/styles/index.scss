@@ -1,0 +1,12 @@
+:root {
+  --el-color-primary: #409eff;
+}
+
+html.dark {
+  /* Dark mode overrides */
+}
+
+body {
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
