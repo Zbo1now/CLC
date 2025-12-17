@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2 class="page-title">
-          <el-icon><Setting /></el-icon>
+          <i class="el-icon-setting"></i>
           系统配置
         </h2>
         <p class="page-description">动态调整系统参数，无需重启服务即可生效</p>
@@ -29,7 +29,7 @@
         :name="category.value">
         <template #label>
           <span class="tab-label">
-            <el-icon><component :is="category.icon" /></el-icon>
+            <i :class="category.icon"></i>
             {{ category.label }}
           </span>
         </template>
@@ -43,7 +43,7 @@
             @click="handleEditConfig(config)">
             <div class="card-header">
               <div class="card-icon" :style="{ background: category.color }">
-                <el-icon><component :is="getConfigIcon(config.configKey)" /></el-icon>
+                <i :class="getConfigIcon(config.configKey)"></i>
               </div>
               <div class="card-info">
                 <h3 class="config-name">{{ config.displayName }}</h3>
@@ -53,7 +53,7 @@
             <div class="card-body">
               <div class="config-value">
                 <span class="value-number">{{ config.configValue }}</span>
-                <span class="value-unit" v-if="config.unit">{{ config.unit }}</span>
+                <span class="value-unit">{{ config.unit }}</span>
               </div>
               <p v-if="config.description" class="config-desc">{{ config.description }}</p>
               <div v-if="config.minValue !== null || config.maxValue !== null" class="config-range">
@@ -66,11 +66,11 @@
             </div>
             <div class="card-footer">
               <span class="update-time">
-                <el-icon><Clock /></el-icon>
+                <i class="el-icon-time"></i>
                 {{ formatTime(config.updatedAt) }}
               </span>
               <span v-if="config.updatedBy" class="updated-by">
-                <el-icon><User /></el-icon>
+                <i class="el-icon-user"></i>
                 {{ config.updatedBy }}
               </span>
             </div>
@@ -78,7 +78,7 @@
 
           <!-- 空状态 -->
           <div v-if="!loading && filteredConfigs.length === 0" class="empty-state">
-            <el-icon><Document /></el-icon>
+            <i class="el-icon-document"></i>
             <p>暂无配置项</p>
           </div>
         </div>
@@ -112,23 +112,20 @@
 
         <el-form ref="formRef" :model="editForm" :rules="formRules" label-width="80px">
           <el-form-item label="配置值" prop="configValue">
-            <div class="input-with-unit">
-              <el-input-number 
-                v-if="currentConfig.valueType === 'NUMBER'"
-                v-model="editForm.configValue"
-                :min="currentConfig.minValue"
-                :max="currentConfig.maxValue"
-                :step="1"
-                style="flex: 1">
-              </el-input-number>
-              <el-input 
-                v-else
-                v-model="editForm.configValue"
-                placeholder="请输入配置值"
-                style="flex: 1">
-              </el-input>
-              <span v-if="currentConfig.unit" class="input-unit">{{ currentConfig.unit }}</span>
-            </div>
+            <el-input-number 
+              v-if="currentConfig.valueType === 'NUMBER'"
+              v-model="editForm.configValue"
+              :min="currentConfig.minValue"
+              :max="currentConfig.maxValue"
+              :step="1"
+              style="width: 100%">
+            </el-input-number>
+            <el-input 
+              v-else
+              v-model="editForm.configValue"
+              placeholder="请输入配置值">
+            </el-input>
+            <span v-if="currentConfig.unit" class="input-unit">{{ currentConfig.unit }}</span>
           </el-form-item>
         </el-form>
       </div>
@@ -148,12 +145,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Refresh, Setting, Clock, User, Document,
-  Coin, Present, Box, Grid, 
-  SuccessFilled, Trophy, Tickets, Briefcase, 
-  OfficeBuilding, Monitor 
-} from '@element-plus/icons-vue'
+import { Refresh } from '@element-plus/icons-vue'
 import { getSystemConfigs, updateConfig, refreshCache } from '@/api/systemConfig'
 
 // 配置分类
@@ -161,25 +153,25 @@ const categories = [
   { 
     value: 'REWARD', 
     label: '激励配置', 
-    icon: Coin,
+    icon: 'el-icon-coin',
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   { 
     value: 'ACTIVITY', 
     label: '活动配置', 
-    icon: Present,
+    icon: 'el-icon-present',
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
   { 
     value: 'RESOURCE', 
     label: '资源配置', 
-    icon: Box,
+    icon: 'el-icon-box',
     color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
   },
   { 
     value: 'SYSTEM', 
     label: '系统配置', 
-    icon: Grid,
+    icon: 'el-icon-setting',
     color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
   }
 ]
@@ -214,14 +206,14 @@ const filteredConfigs = computed(() => {
 // 获取配置图标
 const getConfigIcon = (configKey) => {
   const iconMap = {
-    'reward.checkin': SuccessFilled,
-    'reward.achievement.patent': Trophy,
-    'reward.achievement.paper': Tickets,
-    'reward.duty.default': Briefcase,
-    'resource.workstation.default_rate': OfficeBuilding,
-    'resource.device.default_rate': Monitor
+    'reward.checkin': 'el-icon-success',
+    'reward.achievement.patent': 'el-icon-trophy',
+    'reward.achievement.paper': 'el-icon-document',
+    'reward.duty.default': 'el-icon-briefcase',
+    'resource.workstation.default_rate': 'el-icon-office-building',
+    'resource.device.default_rate': 'el-icon-monitor'
   }
-  return iconMap[configKey] || Coin
+  return iconMap[configKey] || 'el-icon-coin'
 }
 
 // 格式化时间
@@ -244,10 +236,8 @@ const loadConfigs = async () => {
   loading.value = true
   try {
     const res = await getSystemConfigs()
-    console.log('API返回数据:', res)
-    if (res.success) {
+    if (res.code === 0) {
       configs.value = res.data || {}
-      console.log('设置后的configs.value:', configs.value)
     } else {
       ElMessage.error(res.message || '加载配置失败')
     }
@@ -286,7 +276,7 @@ const handleSaveConfig = async () => {
         currentConfig.value.id, 
         editForm.value.configValue.toString()
       )
-      if (res.success) {
+      if (res.code === 0) {
         ElMessage.success('保存成功')
         dialogVisible.value = false
         await loadConfigs() // 重新加载配置
@@ -324,7 +314,7 @@ const handleRefreshCache = async () => {
     
     refreshing.value = true
     const res = await refreshCache()
-    if (res.success) {
+    if (res.code === 0) {
       ElMessage.success('缓存刷新成功')
       await loadConfigs()
     } else {
@@ -349,7 +339,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .system-config-container {
   padding: 20px;
-  background: var(--el-bg-color-page);
+  background: #f5f7fa;
   min-height: calc(100vh - 120px);
 }
 
@@ -359,39 +349,39 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 24px;
   padding: 20px;
-  background: var(--el-bg-color);
+  background: white;
   border-radius: 12px;
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 
   .header-left {
     .page-title {
       margin: 0;
       font-size: 24px;
       font-weight: 600;
-      color: var(--el-text-color-primary);
+      color: #303133;
       display: flex;
       align-items: center;
       gap: 10px;
 
-      .el-icon {
+      i {
         font-size: 28px;
-        color: var(--el-color-primary);
+        color: #409eff;
       }
     }
 
     .page-description {
       margin: 8px 0 0 0;
       font-size: 14px;
-      color: var(--el-text-color-secondary);
+      color: #909399;
     }
   }
 }
 
 .config-tabs {
-  background: var(--el-bg-color);
+  background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 
   :deep(.el-tabs__header) {
     margin-bottom: 24px;
@@ -407,7 +397,7 @@ onMounted(() => {
     align-items: center;
     gap: 8px;
 
-    .el-icon {
+    i {
       font-size: 16px;
     }
   }
@@ -421,16 +411,16 @@ onMounted(() => {
 }
 
 .config-card {
-  background: var(--el-bg-color);
+  background: white;
   border-radius: 12px;
-  padding: 16px;
-  border: 2px solid var(--el-border-color-lighter);
+  padding: 20px;
+  border: 2px solid #f0f2f5;
   transition: all 0.3s ease;
   cursor: pointer;
 
   &:hover {
-    border-color: var(--el-color-primary);
-    box-shadow: 0 4px 20px var(--el-color-primary-light-8);
+    border-color: #409eff;
+    box-shadow: 0 4px 20px rgba(64, 158, 255, 0.15);
     transform: translateY(-4px);
   }
 
@@ -438,7 +428,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 
     .card-icon {
       width: 48px;
@@ -460,7 +450,7 @@ onMounted(() => {
         margin: 0;
         font-size: 16px;
         font-weight: 600;
-        color: var(--el-text-color-primary);
+        color: #303133;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -469,7 +459,7 @@ onMounted(() => {
       .config-key {
         margin: 4px 0 0 0;
         font-size: 12px;
-        color: var(--el-text-color-secondary);
+        color: #909399;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -478,41 +468,41 @@ onMounted(() => {
   }
 
   .card-body {
-
     .config-value {
       display: flex;
       align-items: baseline;
-      gap: 4px;
+      gap: 8px;
       margin-bottom: 12px;
 
       .value-number {
         font-size: 32px;
         font-weight: 700;
-        color: var(--el-color-primary);
+        color: #409eff;
         line-height: 1;
       }
 
       .value-unit {
-        font-size: 16px;
-        color: var(--el-text-color-regular);
-        font-weight: 500;
+        font-size: 14px;
+        color: #909399;
       }
     }
 
     .config-desc {
-      display: none;
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      color: #606266;
+      line-height: 1.6;
     }
 
     .config-range {
       font-size: 13px;
-      color: var(--el-text-color-secondary);
-      padding: 6px 10px;
-      background: var(--el-fill-color-light);
+      color: #909399;
+      padding: 8px 12px;
+      background: #f5f7fa;
       border-radius: 6px;
-      margin-bottom: 8px;
 
       .range-value {
-        color: var(--el-text-color-regular);
+        color: #606266;
         font-weight: 500;
       }
     }
@@ -522,18 +512,18 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 0;
-    padding-top: 12px;
-    border-top: 1px solid var(--el-border-color-lighter);
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f2f5;
     font-size: 12px;
-    color: var(--el-text-color-secondary);
+    color: #909399;
 
     span {
       display: flex;
       align-items: center;
       gap: 4px;
 
-      .el-icon {
+      i {
         font-size: 14px;
       }
     }
@@ -547,9 +537,9 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: var(--el-text-color-secondary);
+  color: #909399;
 
-  .el-icon {
+  i {
     font-size: 64px;
     margin-bottom: 16px;
     opacity: 0.5;
@@ -565,7 +555,7 @@ onMounted(() => {
   .config-detail {
     margin-bottom: 24px;
     padding: 16px;
-    background: var(--el-fill-color-light);
+    background: #f5f7fa;
     border-radius: 8px;
 
     .detail-item {
@@ -579,29 +569,21 @@ onMounted(() => {
 
       label {
         min-width: 80px;
-        color: var(--el-text-color-secondary);
+        color: #909399;
         font-weight: 500;
       }
 
       .detail-value {
         flex: 1;
-        color: var(--el-text-color-regular);
+        color: #606266;
       }
     }
   }
 
-  .input-with-unit {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-
   .input-unit {
-    color: var(--el-text-color-regular);
+    margin-left: 8px;
+    color: #909399;
     font-size: 14px;
-    font-weight: 500;
-    white-space: nowrap;
   }
 }
 
