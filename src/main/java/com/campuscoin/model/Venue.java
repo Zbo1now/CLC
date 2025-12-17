@@ -6,6 +6,7 @@ public class Venue {
     private Integer id;
     private String venueName;
     private String venueType;
+    private Integer capacity;
     private Integer ratePerHour;
     private String status;
     private Timestamp createdAt;
@@ -37,6 +38,14 @@ public class Venue {
 
     public void setVenueType(String venueType) {
         this.venueType = venueType;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
     }
 
     public Integer getRatePerHour() {

@@ -5,8 +5,10 @@ import java.sql.Timestamp;
 public class Workstation {
     private int id;
     private String stationCode;
+    private String area;
     private String location;
     private int monthlyRent;
+    private String status;
     // 由查询计算出来的字段：当前自然月是否被占用
     private boolean occupied;
     private Timestamp createdAt;
@@ -27,6 +29,14 @@ public class Workstation {
         this.stationCode = stationCode;
     }
 
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
     public String getLocation() {
         return location;
     }
@@ -41,6 +51,14 @@ public class Workstation {
 
     public void setMonthlyRent(int monthlyRent) {
         this.monthlyRent = monthlyRent;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public boolean isOccupied() {

@@ -5,8 +5,11 @@ import java.sql.Timestamp;
 public class Equipment {
     private int id;
     private String equipmentName;
+    private String model;
     private String equipmentType;
     private int ratePerDay;
+    private int quantity;
+    private int availableQuantity;
     private String status;
 
     // 计算态：是否可借用（由后端根据日期范围计算）
@@ -30,6 +33,14 @@ public class Equipment {
         this.equipmentName = equipmentName;
     }
 
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
     public String getEquipmentType() {
         return equipmentType;
     }
@@ -44,6 +55,22 @@ public class Equipment {
 
     public void setRatePerDay(int ratePerDay) {
         this.ratePerDay = ratePerDay;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public int getAvailableQuantity() {
+        return availableQuantity;
+    }
+
+    public void setAvailableQuantity(int availableQuantity) {
+        this.availableQuantity = availableQuantity;
     }
 
     public String getStatus() {

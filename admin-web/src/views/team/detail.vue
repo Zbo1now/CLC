@@ -415,7 +415,7 @@ async function fetchDetail() {
   loading.value = true
   try {
     const resp = await getTeamDetail(teamId.value)
-    const data = resp?.data?.data || {}
+    const data = resp?.data || {}
 
     Object.assign(detail, data)
 
@@ -431,7 +431,7 @@ async function fetchDetail() {
 async function fetchTimeline() {
   try {
     const resp = await getTeamTimeline(teamId.value)
-    const data = resp?.data?.data || {}
+    const data = resp?.data || {}
 
     timeline.transactions = data.transactions || []
     timeline.achievements = data.achievements || []

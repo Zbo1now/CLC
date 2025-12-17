@@ -36,7 +36,7 @@ http.interceptors.request.use((config) => {
 })
 
 http.interceptors.response.use(
-  (resp) => resp,
+  (resp) => resp.data,
   async (error) => {
     const hasResponse = !!error?.response
     const status = error?.response?.status

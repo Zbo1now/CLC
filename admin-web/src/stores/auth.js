@@ -16,7 +16,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login({ username, password }) {
       const resp = await http.post('/admin/auth/login', { username, password })
-      const data = resp?.data?.data || {}
+      const data = resp?.data || {}
 
       this.sessionId = data.sessionId || ''
       setAdminSessionId(this.sessionId)
@@ -33,7 +33,7 @@ export const useAuthStore = defineStore('auth', {
         throw new Error('no session')
       }
       const resp = await http.get('/admin/auth/me')
-      const data = resp?.data?.data || {}
+      const data = resp?.data || {}
       this.username = data.username || ''
       this.displayName = data.displayName || ''
       this.hydrated = true

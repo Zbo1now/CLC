@@ -287,7 +287,7 @@ async function fetchList() {
     }
 
     const resp = await getTeamList(params)
-    const data = resp?.data?.data || {}
+    const data = resp?.data || {}
 
     tableData.value = data.list || []
     pagination.total = data.total || 0

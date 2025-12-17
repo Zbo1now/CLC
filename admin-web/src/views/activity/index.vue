@@ -452,14 +452,14 @@ const loadActivityList = async () => {
       pageSize: pagination.pageSize
     })
 
-    if (res.data.success) {
-      tableData.value = res.data.data.items
-      pagination.total = res.data.data.total
+    if (res.success) {
+      tableData.value = res.data.items
+      pagination.total = res.data.total
 
       // 计算统计数据
       updateStats()
     } else {
-      ElMessage.error(res.data.message || '加载失败')
+      ElMessage.error(res.message || '加载失败')
     }
   } catch (error) {
     console.error('加载活动列表失败:', error)
@@ -477,7 +477,7 @@ const updateStats = async () => {
       page: 1,
       pageSize: 1
     })
-    stats.total = allRes.data.data?.total || 0
+    stats.total = allRes.data?.total || 0
 
     // 查询未开始活动
     const notStartedRes = await getActivityList({
@@ -485,7 +485,7 @@ const updateStats = async () => {
       page: 1,
       pageSize: 1
     })
-    stats.notStarted = notStartedRes.data.data?.total || 0
+    stats.notStarted = notStartedRes.data?.total || 0
 
     // 查询进行中活动
     const ongoingRes = await getActivityList({
@@ -493,7 +493,7 @@ const updateStats = async () => {
       page: 1,
       pageSize: 1
     })
-    stats.ongoing = ongoingRes.data.data?.total || 0
+    stats.ongoing = ongoingRes.data?.total || 0
 
     // 查询已结束活动
     const finishedRes = await getActivityList({
@@ -501,7 +501,7 @@ const updateStats = async () => {
       page: 1,
       pageSize: 1
     })
-    stats.finished = finishedRes.data.data?.total || 0
+    stats.finished = finishedRes.data?.total || 0
   } catch (error) {
     console.error('更新统计数据失败:', error)
   }
@@ -572,12 +572,12 @@ const handleSubmit = async () => {
       res = await updateActivity(formData.id, formData)
     }
 
-    if (res.data.success) {
-      ElMessage.success(res.data.message || '操作成功')
+    if (res.success) {
+      ElMessage.success(res.message || '操作成功')
       dialogVisible.value = false
       loadActivityList()
     } else {
-      ElMessage.error(res.data.message || '操作失败')
+      ElMessage.error(res.message || '操作失败')
     }
   } catch (error) {
     console.error('提交失败:', error)
@@ -601,11 +601,11 @@ const handleCancel = async (row) => {
     )
 
     const res = await updateActivityStatus(row.id, 'CANCELLED')
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('下线成功')
       loadActivityList()
     } else {
-      ElMessage.error(res.data.message || '下线失败')
+      ElMessage.error(res.message || '下线失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -629,11 +629,11 @@ const handleDelete = async (row) => {
     )
 
     const res = await deleteActivity(row.id)
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('删除成功')
       loadActivityList()
     } else {
-      ElMessage.error(res.data.message || '删除失败')
+      ElMessage.error(res.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {

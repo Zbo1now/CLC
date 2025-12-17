@@ -390,12 +390,12 @@ const loadAchievementList = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize
     }
-    const { data } = await getAchievementList(params)
-    if (data.success) {
-      achievementList.value = data.data.items
-      pagination.total = data.data.total
+    const res = await getAchievementList(params)
+    if (res.success) {
+      achievementList.value = res.data.items
+      pagination.total = res.data.total
     } else {
-      ElMessage.error(data.message || '加载失败')
+      ElMessage.error(res.message || '加载失败')
     }
   } catch (error) {
     console.error('加载成果列表失败:', error)
@@ -414,9 +414,9 @@ const loadStats = async () => {
       getAchievementList({ status: 'APPROVED', page: 1, pageSize: 1 }),
       getAchievementList({ status: 'REJECTED', page: 1, pageSize: 1 })
     ])
-    stats.pending = pendingRes.data.data?.total || 0
-    stats.approved = approvedRes.data.data?.total || 0
-    stats.rejected = rejectedRes.data.data?.total || 0
+    stats.pending = pendingRes.data?.total || 0
+    stats.approved = approvedRes.data?.total || 0
+    stats.rejected = rejectedRes.data?.total || 0
   } catch (error) {
     console.error('加载统计数据失败:', error)
   }
@@ -468,14 +468,14 @@ const handleConfirmApprove = async () => {
 
     submitting.value = true
     try {
-      const { data } = await approveAchievement(currentAchievement.value.id, approveForm.rewardCoins)
-      if (data.success) {
+      const res = await approveAchievement(currentAchievement.value.id, approveForm.rewardCoins)
+      if (res.success) {
         ElMessage.success('审核通过并发币成功')
         approveDialogVisible.value = false
         loadAchievementList()
         loadStats()
       } else {
-        ElMessage.error(data.message || '审核失败')
+        ElMessage.error(res.message || '审核失败')
       }
     } catch (error) {
       console.error('审核通过失败:', error)
@@ -502,14 +502,14 @@ const handleConfirmReject = async () => {
 
     submitting.value = true
     try {
-      const { data } = await rejectAchievement(currentAchievement.value.id, rejectForm.rejectReason)
-      if (data.success) {
+      const res = await rejectAchievement(currentAchievement.value.id, rejectForm.rejectReason)
+      if (res.success) {
         ElMessage.success('驳回成功')
         rejectDialogVisible.value = false
         loadAchievementList()
         loadStats()
       } else {
-        ElMessage.error(data.message || '驳回失败')
+        ElMessage.error(res.message || '驳回失败')
       }
     } catch (error) {
       console.error('驳回失败:', error)

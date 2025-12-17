@@ -331,11 +331,11 @@ const loadParticipationList = async () => {
       pageSize: pagination.pageSize
     })
 
-    if (res.data.success) {
-      tableData.value = res.data.data.items
-      pagination.total = res.data.data.total
+    if (res.success) {
+      tableData.value = res.data.items
+      pagination.total = res.data.total
     } else {
-      ElMessage.error(res.data.message || '加载失败')
+      ElMessage.error(res.message || '加载失败')
     }
   } catch (error) {
     console.error('加载参与记录列表失败:', error)
@@ -385,11 +385,11 @@ const handleApprove = async (row) => {
     )
 
     const res = await approveParticipation(row.id)
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('审核通过成功，已发放奖励币')
       loadParticipationList()
     } else {
-      ElMessage.error(res.data.message || '审核通过失败')
+      ElMessage.error(res.message || '审核通过失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -414,12 +414,12 @@ const handleRejectSubmit = async () => {
   submitting.value = true
   try {
     const res = await rejectParticipation(rejectForm.id, rejectForm.rejectReason)
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('审核驳回成功')
       rejectDialogVisible.value = false
       loadParticipationList()
     } else {
-      ElMessage.error(res.data.message || '审核驳回失败')
+      ElMessage.error(res.message || '审核驳回失败')
     }
   } catch (error) {
     console.error('审核驳回失败:', error)
@@ -443,12 +443,12 @@ const handleBatchApprove = async () => {
     )
 
     const res = await batchApproveParticipation(selectedIds.value)
-    if (res.data.success) {
-      const { successCount, failCount } = res.data.data
+    if (res.success) {
+      const { successCount, failCount } = res.data
       ElMessage.success(`批量审核完成：成功 ${successCount} 条，失败 ${failCount} 条`)
       loadParticipationList()
     } else {
-      ElMessage.error(res.data.message || '批量审核失败')
+      ElMessage.error(res.message || '批量审核失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -470,12 +470,12 @@ const handleCompleteSubmit = async () => {
   submitting.value = true
   try {
     const res = await completeParticipation(completeForm.id, completeForm.completionNotes)
-    if (res.data.success) {
+    if (res.success) {
       ElMessage.success('标记已完成成功')
       completeDialogVisible.value = false
       loadParticipationList()
     } else {
-      ElMessage.error(res.data.message || '标记已完成失败')
+      ElMessage.error(res.message || '标记已完成失败')
     }
   } catch (error) {
     console.error('标记已完成失败:', error)

@@ -5,7 +5,9 @@ import java.sql.Timestamp;
 public class Device {
     private int id;
     private String deviceName;
+    private String model;
     private String deviceType;
+    private String location;
     private int ratePerHour;
     private String status;
 
@@ -33,12 +35,28 @@ public class Device {
         this.deviceName = deviceName;
     }
 
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
     public String getDeviceType() {
         return deviceType;
     }
 
     public void setDeviceType(String deviceType) {
         this.deviceType = deviceType;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public int getRatePerHour() {

@@ -247,7 +247,7 @@ async function fetchList() {
     }
 
     const resp = await http.get('/admin/transactions', { params })
-    const data = resp?.data?.data || {}
+    const data = resp?.data || {}
     
     tableData.value = data.list || []
     pagination.total = data.total || 0
@@ -302,7 +302,7 @@ async function handleExport() {
     }
 
     const resp = await http.get('/admin/transactions', { params })
-    const data = resp?.data?.data || {}
+    const data = resp?.data || {}
     const list = data.list || []
 
     if (list.length === 0) {

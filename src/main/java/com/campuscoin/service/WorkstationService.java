@@ -86,6 +86,9 @@ public class WorkstationService {
 
         leaseDao.create(lease);
 
+        // 更新工位状态为RENTED
+        workstationDao.updateStatus(workstationId, "RENTED");
+
         // 记录流水：负向支出
         try {
             String desc = "工位租赁 " + workstation.getStationCode() + " (" + months + "个月)";
@@ -196,6 +199,9 @@ public class WorkstationService {
         if (updated <= 0) {
             throw new IllegalStateException("释放失败，请稍后重试");
         }
+
+        // 更新工位状态为AVAILABLE
+        workstationDao.updateStatus(locked.getWorkstationId(), "AVAILABLE");
 
         logger.info("工位租约释放成功: teamId={}, leaseId={}, workstationId={}, endMonth={}",
                 teamId, locked.getId(), locked.getWorkstationId(), locked.getEndMonth());
