@@ -44,7 +44,7 @@
           <el-dropdown>
             <span class="el-dropdown-link">
               <el-avatar :size="32" src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png" />
-              <span class="username">管理员</span>
+              <span class="username">{{ displayName }}</span>
               <el-icon class="el-icon--right"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
@@ -72,9 +72,11 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDark, useToggle } from '@vueuse/core'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const isCollapse = ref(false)
 
 const isDark = useDark()
@@ -83,15 +85,30 @@ const toggleDark = useToggle(isDark)
 const activeMenu = computed(() => route.path)
 const currentRouteName = computed(() => route.meta.title)
 
+const displayName = computed(() => auth.displayName || '管理员')
+
 const menuRoutes = computed(() => {
-  return router.options.routes[0].children
+  const order = [
+    '/dashboard',
+    '/team',
+    '/transaction',
+    '/audit',
+    '/resource',
+    '/activity',
+    '/config'
+  ]
+
+  const all = router.getRoutes()
+  const map = new Map(all.map((r) => [r.path, r]))
+  return order.map((p) => map.get(p)).filter(Boolean)
 })
 
 const toggleCollapse = () => {
   isCollapse.value = !isCollapse.value
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  await auth.logout()
   router.push('/login')
 }
 </script>

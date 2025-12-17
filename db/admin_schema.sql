@@ -1,21 +1,11 @@
-CREATE DATABASE IF NOT EXISTS campuscoin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE campuscoin;
-
-CREATE TABLE IF NOT EXISTS teams (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    team_name VARCHAR(128) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    contact_name VARCHAR(64) NOT NULL,
-    contact_phone VARCHAR(32) NOT NULL,
-    balance INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- =========================
 -- 管理员账号体系（后台管理）
+-- 增量脚本：如果你已经执行过 db/schema.sql（旧版），只需要再执行本脚本即可。
 -- 说明：首次部署时预置一个管理员账号（admin / 123456）。
 -- 安全：密码不存明文，存 BCrypt 哈希。
 -- =========================
+
+USE campuscoin;
 
 CREATE TABLE IF NOT EXISTS admin_users (
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
@@ -30,7 +20,6 @@ CREATE TABLE IF NOT EXISTS admin_users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='后台管理员账号表';
 
 -- 预置管理员账号（admin / 123456）
--- 注意：password_hash 需要使用 BCrypt 生成。下方值会在后续步骤中写入真实 hash。
 INSERT INTO admin_users (username, password_hash, display_name, enabled)
 SELECT 'admin', '$2a$10$yMi4M7AhiDle9zzik7787u091.y3YZWccl9dnsxkpgi/uMql22JsS', '管理员', 1
 WHERE NOT EXISTS (SELECT 1 FROM admin_users WHERE username = 'admin');

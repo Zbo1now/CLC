@@ -43,13 +43,19 @@ public class SessionManager {
      * 尝试从 Header 或 Cookie 获取 SessionID
      */
     public static String getSessionId(HttpServletRequest request) {
-        // 1. 优先从 Header 获取
-        String headerId = request.getHeader("X-Session-Id");
+        // 1. 优先从 Header 获取（后台管理端专用）
+        String headerId = request.getHeader("X-Admin-Session-Id");
+        if (headerId != null && !headerId.isEmpty()) {
+            return headerId;
+        }
+
+        // 2. 其次从通用 Header 获取（H5/其它客户端）
+        headerId = request.getHeader("X-Session-Id");
         if (headerId != null && !headerId.isEmpty()) {
             return headerId;
         }
         
-        // 2. 其次尝试标准 Session (Cookie)
+        // 3. 其次尝试标准 Session (Cookie)
         HttpSession session = request.getSession(false);
         if (session != null) {
             return session.getId();

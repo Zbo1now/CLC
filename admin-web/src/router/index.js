@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layout/MainLayout.vue'
+import { useAuthStore } from '@/stores/auth'
+import { ElMessageBox } from 'element-plus'
 
 const routes = [
   {
@@ -62,6 +64,51 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  const isLogin = to.path === '/login'
+
+  if (isLogin) {
+    if (auth.isAuthed) {
+      return { path: '/dashboard' }
+    }
+    return true
+  }
+
+  if (!auth.isAuthed) {
+    try {
+      await ElMessageBox.confirm('当前未登录，是否前往登录页面？', '提示', {
+        confirmButtonText: '去登录',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      return { path: '/login', query: { redirect: to.fullPath } }
+    } catch (e) {
+      return false
+    }
+  }
+
+  if (!auth.hydrated) {
+    try {
+      await auth.fetchMe()
+    } catch (e) {
+      auth.clear()
+      try {
+        await ElMessageBox.confirm('登录已失效，是否前往登录页面重新登录？', '提示', {
+          confirmButtonText: '去登录',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        return { path: '/login', query: { redirect: to.fullPath } }
+      } catch (e2) {
+        return false
+      }
+    }
+  }
+
+  return true
 })
 
 export default router

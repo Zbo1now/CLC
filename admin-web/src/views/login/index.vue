@@ -53,8 +53,10 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 const loginFormRef = ref(null)
 const loading = ref(false)
 
@@ -71,24 +73,20 @@ const loginRules = {
 const handleLogin = async () => {
   if (!loginFormRef.value) return
   
-  await loginFormRef.value.validate((valid, fields) => {
-    if (valid) {
-      loading.value = true
-      // 模拟登录请求
-      setTimeout(() => {
-        loading.value = false
-        if (loginForm.username === 'admin' && loginForm.password === '123456') {
-          ElMessage.success('登录成功')
-          router.push('/')
-        } else {
-          // 为了演示方便，只要输入了都让进，实际开发请对接后端
-          // ElMessage.error('用户名或密码错误')
-           ElMessage.success('登录成功 (演示模式)')
-           router.push('/')
-        }
-      }, 1000)
-    }
-  })
+  const valid = await loginFormRef.value.validate().catch(() => false)
+  if (!valid) return
+
+  loading.value = true
+  try {
+    await auth.login({ username: loginForm.username, password: loginForm.password })
+    ElMessage.success('登录成功')
+    router.push('/dashboard')
+  } catch (e) {
+    const msg = e?.response?.data?.message || e?.response?.data?.msg || e?.response?.data?.error || e?.message
+    ElMessage.error(msg || '登录失败，请检查用户名或密码')
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

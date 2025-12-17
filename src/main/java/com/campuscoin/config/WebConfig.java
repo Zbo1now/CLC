@@ -1,6 +1,7 @@
 package com.campuscoin.config;
 
 import com.campuscoin.interceptor.LoginInterceptor;
+import com.campuscoin.interceptor.admin.AdminLoginInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -12,6 +13,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
     private LoginInterceptor loginInterceptor;
+
+    @Autowired
+    private AdminLoginInterceptor adminLoginInterceptor;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -29,7 +33,15 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**") // 拦截所有 API
                 .excludePathPatterns(
                         "/api/auth/**",      // 排除登录注册
-                        "/api/face/login"    // 排除刷脸登录
+                "/api/face/login",   // 排除刷脸登录
+                "/api/admin/**"      // 排除后台管理端 API（由 AdminLoginInterceptor 负责）
                 );
+
+        registry.addInterceptor(adminLoginInterceptor)
+            .addPathPatterns("/api/admin/**")
+            .excludePathPatterns(
+                "/api/admin/auth/login",
+                "/api/admin/auth/logout"
+            );
     }
 }
