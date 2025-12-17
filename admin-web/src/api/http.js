@@ -51,19 +51,12 @@ http.interceptors.response.use(
 
       if (window.location.pathname !== '/login' && !isHandling401) {
         isHandling401 = true
-        try {
-          await ElMessageBox.confirm('未登录或登录已失效，是否前往登录页面？', '提示', {
-            confirmButtonText: '去登录',
-            cancelButtonText: '取消',
-            type: 'warning'
-          })
-          const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+        ElMessage.warning('登录已过期，请重新登录')
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+        setTimeout(() => {
           window.location.href = `/login?redirect=${redirect}`
-        } catch (e) {
-          ElMessage.warning('请先登录后再继续操作')
-        } finally {
           isHandling401 = false
-        }
+        }, 500)
       }
 
       return Promise.reject(error)

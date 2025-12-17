@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import MainLayout from '@/layout/MainLayout.vue'
 import { useAuthStore } from '@/stores/auth'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const routes = [
   {
@@ -76,6 +76,8 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   const isLogin = to.path === '/login'
 
+  console.log('[路由守卫] 目标路径:', to.path, '认证状态:', auth.isAuthed, 'hydrated:', auth.hydrated, 'sessionId:', auth.sessionId)
+
   if (isLogin) {
     if (auth.isAuthed) {
       return { path: '/dashboard' }
@@ -84,33 +86,22 @@ router.beforeEach(async (to) => {
   }
 
   if (!auth.isAuthed) {
-    try {
-      await ElMessageBox.confirm('当前未登录，是否前往登录页面？', '提示', {
-        confirmButtonText: '去登录',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
-      return { path: '/login', query: { redirect: to.fullPath } }
-    } catch (e) {
-      return false
-    }
+    console.log('[路由守卫] 未登录，跳转登录页')
+    ElMessage.warning('请先登录')
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 
+  // 每次路由切换时验证 session 是否有效
   if (!auth.hydrated) {
+    console.log('[路由守卫] 验证 session 有效性...')
     try {
       await auth.fetchMe()
+      console.log('[路由守卫] session 有效')
     } catch (e) {
+      console.error('[路由守卫] session 无效:', e)
       auth.clear()
-      try {
-        await ElMessageBox.confirm('登录已失效，是否前往登录页面重新登录？', '提示', {
-          confirmButtonText: '去登录',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
-        return { path: '/login', query: { redirect: to.fullPath } }
-      } catch (e2) {
-        return false
-      }
+      ElMessage.warning('登录已过期，请重新登录')
+      return { path: '/login', query: { redirect: to.fullPath } }
     }
   }
 

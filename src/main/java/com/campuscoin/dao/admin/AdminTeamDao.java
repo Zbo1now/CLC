@@ -151,23 +151,23 @@ public interface AdminTeamDao {
             "SELECT COUNT(*) FROM (",
             "  SELECT id FROM device_bookings ",
             "  WHERE team_id = #{teamId} ",
-            "    AND created_at &gt;= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
-            "    AND created_at &lt; DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
+            "    AND created_at >= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
+            "    AND created_at < DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
             "  UNION ALL ",
             "  SELECT id FROM venue_bookings ",
             "  WHERE team_id = #{teamId} ",
-            "    AND created_at &gt;= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
-            "    AND created_at &lt; DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
+            "    AND created_at >= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
+            "    AND created_at < DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
             "  UNION ALL ",
             "  SELECT id FROM equipment_loans ",
             "  WHERE team_id = #{teamId} ",
-            "    AND created_at &gt;= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
-            "    AND created_at &lt; DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
+            "    AND created_at >= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
+            "    AND created_at < DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
             "  UNION ALL ",
             "  SELECT id FROM workstation_leases ",
             "  WHERE team_id = #{teamId} ",
-            "    AND created_at &gt;= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
-            "    AND created_at &lt; DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
+            "    AND created_at >= DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY) ",
+            "    AND created_at < DATE_ADD(DATE_SUB(NOW(), INTERVAL WEEKDAY(NOW()) DAY), INTERVAL 7 DAY) ",
             ") AS all_resources"
     })
     Integer countWeeklyResourceUsage(@Param("teamId") Integer teamId);
@@ -184,7 +184,7 @@ public interface AdminTeamDao {
      */
     @Select("SELECT * FROM transactions " +
             "WHERE team_id = #{teamId} " +
-            "  AND created_at &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
+            "  AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
             "ORDER BY created_at DESC " +
             "LIMIT 50")
     @Results({

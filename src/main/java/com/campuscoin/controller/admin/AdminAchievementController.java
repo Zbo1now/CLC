@@ -1,93 +1,158 @@
 package com.campuscoin.controller.admin;
 
-import com.campuscoin.model.AchievementSubmission;
+import com.campuscoin.model.admin.AdminAchievementListItem;
 import com.campuscoin.payload.ApiResponse;
-import com.campuscoin.service.AchievementService;
+import com.campuscoin.payload.PagedResponse;
+import com.campuscoin.service.admin.AdminAchievementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
+/**
+ * 成果审核控制器（管理员后台）
+ */
 @RestController
 @RequestMapping("/api/admin/achievements")
 public class AdminAchievementController {
-
     private static final Logger logger = LoggerFactory.getLogger(AdminAchievementController.class);
 
-    private final AchievementService achievementService;
+    private final AdminAchievementService adminAchievementService;
 
-    public AdminAchievementController(AchievementService achievementService) {
-        this.achievementService = achievementService;
+    public AdminAchievementController(AdminAchievementService adminAchievementService) {
+        this.adminAchievementService = adminAchievementService;
     }
 
+    /**
+     * 分页查询成果列表（带筛选条件）
+     * GET /api/admin/achievements?status=PENDING&category=论文&teamName=xxx&page=1&pageSize=20
+     */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AchievementSubmission>>> list(@RequestParam(required = false) String status,
-                                                                        HttpServletRequest request) {
-        List<AchievementSubmission> list = achievementService.adminList(status);
-        logger.info("管理员查询成果: admin={}, status={}, count={}", getAdminUser(request), status, list != null ? list.size() : 0);
-        return ResponseEntity.ok(ApiResponse.ok("获取成功", list));
+    public ApiResponse<PagedResponse<AdminAchievementListItem>> listAchievements(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String teamName,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+
+        logger.info("管理员查询成果列表 - 状态:{}, 类型:{}, 团队:{}, 页码:{}, 每页:{}",
+                status, category, teamName, page, pageSize);
+
+        try {
+            PagedResponse<AdminAchievementListItem> result = adminAchievementService.listPaged(status, category, teamName, page, pageSize);
+            return ApiResponse.ok("查询成功", result);
+        } catch (Exception e) {
+            logger.error("查询成果列表失败", e);
+            return ApiResponse.fail("查询失败：" + e.getMessage());
+        }
     }
 
+    /**
+     * 获取成果详情
+     * GET /api/admin/achievements/{id}
+     */
+    @GetMapping("/{id}")
+    public ApiResponse<AdminAchievementListItem> getAchievementDetail(@PathVariable Integer id) {
+        logger.info("管理员查询成果详情 - ID:{}", id);
+
+        try {
+            AdminAchievementListItem detail = adminAchievementService.getDetail(id);
+            if (detail == null) {
+                return ApiResponse.fail("成果不存在");
+            }
+            return ApiResponse.ok("查询成功", detail);
+        } catch (Exception e) {
+            logger.error("查询成果详情失败 - ID:{}", id, e);
+            return ApiResponse.fail("查询失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 审核通过成果（自动发币）
+     * POST /api/admin/achievements/{id}/approve
+     * Body: { "rewardCoins": 100 }
+     */
     @PostMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> approve(@PathVariable int id,
-                                                                    HttpServletRequest request) {
-        String reviewedBy = getAdminUser(request);
+    public ApiResponse<Void> approveAchievement(@PathVariable Integer id,
+                                                @RequestBody ApproveRequest request,
+                                                HttpServletRequest httpRequest) {
+        String adminUsername = (String) httpRequest.getAttribute("adminUsername");
+        logger.info("管理员审核通过成果 - ID:{}, 奖励币值:{}, 审核人:{}", id, request.getRewardCoins(), adminUsername);
+
+        if (request.getRewardCoins() == null || request.getRewardCoins() <= 0) {
+            return ApiResponse.fail("奖励币值必须大于0");
+        }
+
         try {
-            AchievementSubmission updated = achievementService.adminApprove(id, reviewedBy);
-            Map<String, Object> data = new HashMap<>();
-            data.put("submission", updated);
-            return ResponseEntity.ok(ApiResponse.ok("审核通过", data));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+            boolean success = adminAchievementService.approveAchievement(id, request.getRewardCoins(), adminUsername);
+            if (success) {
+                return ApiResponse.ok("审核通过并发币成功", null);
+            } else {
+                return ApiResponse.fail("审核失败：成果不存在或已审核");
+            }
         } catch (Exception e) {
-            logger.error("管理员审核通过异常: id={}, admin={}", id, reviewedBy, e);
-            return ResponseEntity.status(500).body(ApiResponse.fail("操作失败，请稍后重试"));
+            logger.error("审核通过成果失败 - ID:{}", id, e);
+            return ApiResponse.fail("审核失败：" + e.getMessage());
         }
     }
 
+    /**
+     * 审核驳回成果
+     * POST /api/admin/achievements/{id}/reject
+     * Body: { "rejectReason": "材料不符合要求" }
+     */
     @PostMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> reject(@PathVariable int id,
-                                                                   @RequestBody(required = false) RejectRequest req,
-                                                                   HttpServletRequest request) {
-        String reviewedBy = getAdminUser(request);
-        String reason = req != null ? req.getReason() : null;
+    public ApiResponse<Void> rejectAchievement(@PathVariable Integer id,
+                                               @RequestBody RejectRequest request,
+                                               HttpServletRequest httpRequest) {
+        String adminUsername = (String) httpRequest.getAttribute("adminUsername");
+        logger.info("管理员驳回成果 - ID:{}, 驳回原因:{}, 审核人:{}", id, request.getRejectReason(), adminUsername);
+
+        if (request.getRejectReason() == null || request.getRejectReason().trim().isEmpty()) {
+            return ApiResponse.fail("驳回原因不能为空");
+        }
 
         try {
-            AchievementSubmission updated = achievementService.adminReject(id, reviewedBy, reason);
-            Map<String, Object> data = new HashMap<>();
-            data.put("submission", updated);
-            return ResponseEntity.ok(ApiResponse.ok("已驳回", data));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+            boolean success = adminAchievementService.rejectAchievement(id, request.getRejectReason(), adminUsername);
+            if (success) {
+                return ApiResponse.ok("驳回成功", null);
+            } else {
+                return ApiResponse.fail("驳回失败：成果不存在或已审核");
+            }
         } catch (Exception e) {
-            logger.error("管理员驳回异常: id={}, admin={}", id, reviewedBy, e);
-            return ResponseEntity.status(500).body(ApiResponse.fail("操作失败，请稍后重试"));
+            logger.error("驳回成果失败 - ID:{}", id, e);
+            return ApiResponse.fail("驳回失败：" + e.getMessage());
         }
     }
 
-    private String getAdminUser(HttpServletRequest request) {
-        Object displayName = request.getAttribute("adminDisplayName");
-        if (displayName != null) {
-            return displayName.toString();
+    /**
+     * 审核通过请求体
+     */
+    public static class ApproveRequest {
+        private Integer rewardCoins;
+
+        public Integer getRewardCoins() {
+            return rewardCoins;
         }
-        Object username = request.getAttribute("adminUsername");
-        return username != null ? username.toString() : "admin";
+
+        public void setRewardCoins(Integer rewardCoins) {
+            this.rewardCoins = rewardCoins;
+        }
     }
 
+    /**
+     * 审核驳回请求体
+     */
     public static class RejectRequest {
-        private String reason;
+        private String rejectReason;
 
-        public String getReason() {
-            return reason;
+        public String getRejectReason() {
+            return rejectReason;
         }
 
-        public void setReason(String reason) {
-            this.reason = reason;
+        public void setRejectReason(String rejectReason) {
+            this.rejectReason = rejectReason;
         }
     }
 }
