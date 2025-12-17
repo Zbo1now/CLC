@@ -114,19 +114,19 @@ public interface AdminDashboardDao {
     @Select("SELECT COUNT(*) FROM achievement_submissions WHERE created_at >= #{start} AND created_at < #{end}")
     int countAchievementSubmissions(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
-    @Select("SELECT COUNT(*) FROM duty_task_signups WHERE signed_at >= #{start} AND signed_at < #{end}")
+    @Select("SELECT COUNT(*) FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE a.activity_type = 'DUTY' AND ap.apply_time >= #{start} AND ap.apply_time < #{end}")
     int countDutySignups(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
-    @Select("SELECT COUNT(*) FROM training_participations WHERE created_at >= #{start} AND created_at < #{end}")
+    @Select("SELECT COUNT(*) FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE a.activity_type = 'TRAINING' AND ap.created_at >= #{start} AND ap.created_at < #{end}")
     int countTrainingParticipations(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
     @Select("SELECT COUNT(*) FROM transactions WHERE created_at >= #{start} AND created_at < #{end} AND txn_type = 'CHECKIN' AND amount > 0")
     int countCheckinActions(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
-    @Select("SELECT IFNULL(SUM(reward_coins), 0) FROM training_participations WHERE status = 'APPROVED' AND reviewed_at IS NOT NULL AND reviewed_at >= #{start} AND reviewed_at < #{end}")
+    @Select("SELECT IFNULL(SUM(coins_rewarded), 0) FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE a.activity_type = 'TRAINING' AND ap.review_status = 'APPROVED' AND ap.reviewed_at IS NOT NULL AND ap.reviewed_at >= #{start} AND ap.reviewed_at < #{end}")
     Integer sumTrainingApprovedReward(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
-        @Select("SELECT DATE_FORMAT(reviewed_at, '%Y-%m-%d') AS date, IFNULL(SUM(reward_coins),0) AS inflow, 0 AS outflow FROM training_participations WHERE status='APPROVED' AND reviewed_at IS NOT NULL AND reviewed_at >= #{start} AND reviewed_at < #{end} GROUP BY DATE_FORMAT(reviewed_at, '%Y-%m-%d') ORDER BY DATE_FORMAT(reviewed_at, '%Y-%m-%d')")
+        @Select("SELECT DATE_FORMAT(ap.reviewed_at, '%Y-%m-%d') AS date, IFNULL(SUM(ap.coins_rewarded),0) AS inflow, 0 AS outflow FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE a.activity_type='TRAINING' AND ap.review_status='APPROVED' AND ap.reviewed_at IS NOT NULL AND ap.reviewed_at >= #{start} AND ap.reviewed_at < #{end} GROUP BY DATE_FORMAT(ap.reviewed_at, '%Y-%m-%d') ORDER BY DATE_FORMAT(ap.reviewed_at, '%Y-%m-%d')")
     List<AdminDailyFlow> dailyTrainingInflow(@Param("start") Timestamp start, @Param("end") Timestamp end);
 
     @Select("SELECT d.device_name AS name, COUNT(*) AS cnt FROM device_bookings b JOIN devices d ON b.device_id = d.id WHERE b.created_at >= #{start} AND b.created_at < #{end} GROUP BY d.device_name")
@@ -149,9 +149,7 @@ public interface AdminDashboardDao {
             "  UNION ALL ",
             "  SELECT created_at AS ts FROM achievement_submissions WHERE created_at &gt;= #{start} AND created_at &lt; #{end}",
             "  UNION ALL ",
-            "  SELECT signed_at AS ts FROM duty_task_signups WHERE signed_at &gt;= #{start} AND signed_at &lt; #{end}",
-            "  UNION ALL ",
-            "  SELECT created_at AS ts FROM training_participations WHERE created_at &gt;= #{start} AND created_at &lt; #{end}",
+            "  SELECT apply_time AS ts FROM activity_participations WHERE apply_time &gt;= #{start} AND apply_time &lt; #{end}",
             ") u ",
             "GROUP BY WEEKDAY(ts), HOUR(ts)",
             "</script>"

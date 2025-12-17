@@ -38,6 +38,7 @@ public class AdminDashboardService {
     private static final List<String> WEEK_GAIN_TYPES = Arrays.asList(
             "CHECKIN",
             "ACHIEVEMENT_REWARD",
+            "ACTIVITY_REWARD",
             "DUTY_REWARD",
             "TRAINING_REWARD"
     );

@@ -58,6 +58,12 @@ const routes = [
         meta: { title: '活动管理', icon: 'Calendar' }
       },
       {
+        path: 'activity/participation',
+        name: 'ActivityParticipation',
+        component: () => import('@/views/activity/participation.vue'),
+        meta: { title: '参与记录', hidden: true }
+      },
+      {
         path: 'config',
         name: 'Config',
         component: () => import('@/views/config/index.vue'),

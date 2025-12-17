@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS activity_participations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    activity_id INT NOT NULL,
+    team_id INT NOT NULL,
+    team_name VARCHAR(100) NOT NULL,
+    apply_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'applied',
+    review_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    reviewed_by VARCHAR(100),
+    reviewed_at DATETIME,
+    reject_reason TEXT,
+    coins_rewarded INT,
+    coins_rewarded_at DATETIME,
+    completion_notes TEXT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_activity_id (activity_id),
+    INDEX idx_team_id (team_id),
+    INDEX idx_status (status),
+    INDEX idx_review_status (review_status),
+    INDEX idx_apply_time (apply_time),
+    FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

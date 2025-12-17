@@ -135,13 +135,13 @@ public interface AdminTeamDao {
     /**
      * 统计团队累计值班次数
      */
-    @Select("SELECT COUNT(*) FROM duty_task_signups WHERE team_id = #{teamId}")
+    @Select("SELECT COUNT(*) FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE ap.team_id = #{teamId} AND a.activity_type = 'DUTY'")
     Integer countTotalDutyTasks(@Param("teamId") Integer teamId);
 
     /**
      * 统计团队累计培训次数
      */
-    @Select("SELECT COUNT(*) FROM training_participations WHERE team_id = #{teamId}")
+    @Select("SELECT COUNT(*) FROM activity_participations ap JOIN activities a ON ap.activity_id = a.id WHERE ap.team_id = #{teamId} AND a.activity_type = 'TRAINING'")
     Integer countTotalTrainings(@Param("teamId") Integer teamId);
 
     /**

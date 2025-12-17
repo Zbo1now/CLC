@@ -65,7 +65,17 @@
               <view v-if="t.taskDesc" class="desc">{{ t.taskDesc }}</view>
 
               <view class="actions">
+                <!-- 在"我的报名"标签页显示取消按钮 -->
                 <button
+                  v-if="activeTab === 'mine' && canCancel(t)"
+                  class="cancel-btn"
+                  @tap="doCancel(t)"
+                >
+                  取消报名
+                </button>
+                <!-- 原报名按钮 -->
+                <button
+                  v-else
                   class="primary-btn"
                   :disabled="!canSignup(t)"
                   @tap="doSignup(t)"
@@ -148,6 +158,9 @@ const taskStatusClass = (t) => {
 
 const mySignupText = (t) => {
   const s = String(t.mySignupStatus || '').toUpperCase();
+  if (s === 'PENDING') return '待审核';
+  if (s === 'APPROVED') return '已通过';
+  if (s === 'REJECTED') return '已驳回';
   if (s === 'SIGNED') return '已报名';
   if (s === 'PENDING_CONFIRM') return '待确认';
   if (s === 'COMPLETED') return '已确认';
@@ -208,6 +221,14 @@ const refresh = async () => {
   await fetchTasks();
 };
 
+const canCancel = (t) => {
+  if (!t) return false;
+  // 只有待审核(PENDING)状态且任务未结束才能取消
+  const my = String(t.mySignupStatus || '').toUpperCase();
+  const status = String(t.taskStatus || '').toUpperCase();
+  return my === 'PENDING' && status !== 'ENDED';
+};
+
 const doSignup = async (t) => {
   if (!canSignup(t)) return;
 
@@ -243,6 +264,52 @@ const doSignup = async (t) => {
         resolve();
       }
     });
+  });
+};
+
+const doCancel = async (t) => {
+  if (!canCancel(t)) return;
+
+  // 二次确认
+  uni.showModal({
+    title: '确认取消',
+    content: `确定要取消报名"${t.taskName}"吗？`,
+    success: async (modalRes) => {
+      if (!modalRes.confirm) return;
+
+      const sessionId = getSessionId();
+      uni.showLoading({ title: '取消中…' });
+
+      await new Promise((resolve) => {
+        uni.request({
+          url: `${baseUrl}/api/duty-tasks/${t.id}/signups`,
+          method: 'DELETE',
+          header: { 'X-Session-Id': sessionId },
+          withCredentials: true,
+          success: (res) => {
+            uni.hideLoading();
+            if (res.statusCode === 401) {
+              handle401();
+              resolve();
+              return;
+            }
+            if (res.statusCode === 200 && res.data && res.data.success) {
+              uni.showToast({ title: '取消成功', icon: 'success' });
+              fetchTasks();
+              resolve();
+              return;
+            }
+            uni.showToast({ title: (res.data && res.data.message) ? res.data.message : '取消失败', icon: 'none' });
+            resolve();
+          },
+          fail: () => {
+            uni.hideLoading();
+            uni.showToast({ title: '网络异常', icon: 'none' });
+            resolve();
+          }
+        });
+      });
+    }
   });
 };
 
@@ -532,6 +599,27 @@ onShow(async () => {
 
 .primary-btn[disabled] {
   opacity: 0.6;
+}
+
+.cancel-btn {
+  height: 80rpx;
+  min-width: 220rpx;
+  padding: 0 24rpx;
+  border-radius: $radius-full;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  color: $white;
+  font-size: 28rpx;
+  font-weight: 800;
+  box-shadow: 0 10rpx 20rpx rgba(239, 68, 68, 0.25);
+  transition: transform 0.2s;
+}
+
+.cancel-btn:active {
+  transform: scale(0.98);
 }
 
 .empty {

@@ -68,4 +68,27 @@ public class DutyTaskController {
             return ResponseEntity.status(500).body(ApiResponse.fail("报名失败，请稍后重试"));
         }
     }
+
+    // 用户侧：取消报名
+    @DeleteMapping("/{taskId}/signups")
+    public ResponseEntity<ApiResponse<Void>> cancelSignup(@PathVariable int taskId,
+                                                          HttpServletRequest request,
+                                                          HttpSession session) {
+        Integer teamId = SessionHelper.resolveTeamId(request, session);
+        if (teamId == null) {
+            return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
+        }
+
+        try {
+            dutyTaskService.cancelSignup(teamId, taskId);
+            return ResponseEntity.ok(ApiResponse.ok("取消报名成功", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("取消值班任务报名异常: teamId={}, taskId={}", teamId, taskId, e);
+            return ResponseEntity.status(500).body(ApiResponse.fail("取消失败，请稍后重试"));
+        }
+    }
 }

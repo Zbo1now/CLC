@@ -98,15 +98,20 @@ public class DutyTaskService {
             String myStatus = null;
             if (s != null && s.getSignupStatus() != null) {
                 String raw = s.getSignupStatus().trim().toUpperCase();
-                if ("COMPLETED".equals(raw)) {
-                    myStatus = "COMPLETED";
-                } else {
-                    // SIGNED: 若任务已结束，则展示“待确认”
+                if ("APPROVED".equals(raw)) {
+                    // 已审核通过：若任务已结束，则展示"待确认"
                     if (et != null && !now.isBefore(et)) {
                         myStatus = "PENDING_CONFIRM";
                     } else {
-                        myStatus = "SIGNED";
+                        myStatus = "APPROVED";
                     }
+                } else if ("PENDING".equals(raw)) {
+                    // 待审核：直接返回PENDING
+                    myStatus = "PENDING";
+                } else if ("REJECTED".equals(raw)) {
+                    myStatus = "REJECTED";
+                } else {
+                    myStatus = raw; // 其他状态原样返回
                 }
             }
             t.setMySignupStatus(myStatus);
@@ -147,6 +152,34 @@ public class DutyTaskService {
 
         logger.info("值班任务报名成功: teamId={}, taskId={}, name={}", teamId, taskId, task.getTaskName());
         return dutyTaskSignupDao.findByTaskAndTeam(taskId, teamId);
+    }
+
+    @Transactional
+    public void cancelSignup(int teamId, int taskId) {
+        DutyTaskSignup existing = dutyTaskSignupDao.findByTaskAndTeam(taskId, teamId);
+        if (existing == null) {
+            throw new IllegalArgumentException("未找到报名记录");
+        }
+
+        if (!"PENDING".equalsIgnoreCase(existing.getSignupStatus())) {
+            throw new IllegalStateException("该报名已审核，无法取消");
+        }
+
+        DutyTask task = dutyTaskDao.findById(taskId);
+        if (task != null) {
+            LocalDateTime end = task.getEndTime() != null ? task.getEndTime().toLocalDateTime() : null;
+            LocalDateTime now = LocalDateTime.now();
+            if (end != null && now.isAfter(end)) {
+                throw new IllegalStateException("任务已结束，无法取消");
+            }
+        }
+
+        int rows = dutyTaskSignupDao.cancelByTeam(existing.getId(), teamId);
+        if (rows != 1) {
+            throw new IllegalStateException("取消失败，请刷新重试");
+        }
+
+        logger.info("取消值班任务报名: teamId={}, taskId={}", teamId, taskId);
     }
 
     @Transactional
