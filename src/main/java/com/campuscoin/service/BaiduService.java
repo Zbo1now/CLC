@@ -1,4 +1,5 @@
-package com.campuscoin.service;
+
+    package com.campuscoin.service;
 
 import com.baidu.aip.face.AipFace;
 import com.baidu.aip.face.MatchRequest;
@@ -9,8 +10,12 @@ import com.campuscoin.config.BaiduConfig;
 import com.campuscoin.util.LogUtil;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.baidubce.services.bos.model.BosObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -18,6 +23,73 @@ import java.util.logging.Logger;
 
 @Service
 public class BaiduService {
+
+        /**
+         * 生成BOS对象的临时签名下载链接（默认10分钟有效）
+         */
+        public String generateBosSignedUrl(String fileName, int expireSeconds) {
+            try {
+                com.baidubce.services.bos.model.GeneratePresignedUrlRequest req =
+                    new com.baidubce.services.bos.model.GeneratePresignedUrlRequest(
+                        config.getBos().getBucketName(), fileName);
+                req.setMethod(com.baidubce.http.HttpMethodName.GET);
+                req.setExpiration(expireSeconds); // 直接传int秒数
+                java.net.URL url = bosClient.generatePresignedUrl(req);
+                return url.toString();
+            } catch (Exception e) {
+                logger.severe("Generate BOS SignedUrl Failed: " + e.getMessage());
+                return null;
+            }
+        }
+    
+        /**
+         * 根据完整的 proofUrl 提取 key，生成签名链接，兼容有路径前缀的文件名
+         */
+        public String generateBosSignedUrlFromUrl(String proofUrl, int expireSeconds) {
+            String key = extractKeyFromUrl(proofUrl);
+            if (key == null) return null;
+            try {
+                return generateBosSignedUrl(key, expireSeconds);
+            } catch (Exception e) {
+                logger.severe("Generate BOS SignedUrl FromUrl Failed: " + e.getMessage());
+                return null;
+            }
+        }
+
+        /**
+         * 解析 proofUrl 得到对象 key（不含 bucket）。兼容 http/https 和相对路径。
+         */
+        public String extractKeyFromUrl(String proofUrl) {
+            if (proofUrl == null || proofUrl.trim().isEmpty()) return null;
+            String key = proofUrl.trim();
+            boolean isHttp = key.startsWith("http://") || key.startsWith("https://");
+            if (isHttp) {
+                int idxBucket = key.indexOf(config.getBos().getBucketName() + "/");
+                if (idxBucket != -1) {
+                    key = key.substring(idxBucket + config.getBos().getBucketName().length() + 1);
+                } else {
+                    int idx = key.indexOf("//");
+                    String path = idx != -1 ? key.substring(idx + 2) : key;
+                    int firstSlash = path.indexOf('/');
+                    if (firstSlash != -1) {
+                        key = path.substring(firstSlash + 1);
+                    }
+                }
+            } else {
+                if (key.startsWith("/")) {
+                    key = key.substring(1);
+                }
+            }
+            if (key.isEmpty()) return null;
+            return key;
+        }
+
+        /**
+         * 直接获取 BOS 对象（流），用于后端代理下载
+         */
+        public BosObject getObject(String key) {
+            return bosClient.getObject(config.getBos().getBucketName(), key);
+        }
     private static final Logger logger = LogUtil.getLogger(BaiduService.class);
     
     private final AipFace aipFace;
@@ -155,6 +227,23 @@ public class BaiduService {
                 new ByteArrayInputStream(bytes)
             );
             
+            return config.getBos().getEndpoint() + "/" + config.getBos().getBucketName() + "/" + fileName;
+        } catch (Exception e) {
+            logger.severe("BOS Upload Failed: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 上传文件到 BOS (支持 MultipartFile)
+     */
+    public String uploadToBos(MultipartFile file, String fileName) {
+        try (InputStream in = file.getInputStream()) {
+            bosClient.putObject(
+                config.getBos().getBucketName(),
+                fileName,
+                in
+            );
             return config.getBos().getEndpoint() + "/" + config.getBos().getBucketName() + "/" + fileName;
         } catch (Exception e) {
             logger.severe("BOS Upload Failed: " + e.getMessage());

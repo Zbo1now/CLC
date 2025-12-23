@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * 成果审核控制器（管理员后台）
@@ -65,6 +66,17 @@ public class AdminAchievementController {
         } catch (Exception e) {
             logger.error("查询成果详情失败 - ID:{}", id, e);
             return ApiResponse.fail("查询失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 附件下载（后端代理BOS对象流）
+     */
+    @GetMapping("/{id}/attachment")
+    public void downloadAttachment(@PathVariable Integer id, HttpServletResponse response) {
+        boolean ok = adminAchievementService.writeProofToResponse(id, response);
+        if (!ok) {
+            response.setStatus(404);
         }
     }
 

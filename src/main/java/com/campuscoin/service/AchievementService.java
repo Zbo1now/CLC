@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.InputStream;
 import java.util.List;
 
 @Service
@@ -75,6 +77,49 @@ public class AchievementService {
         sub.setProofUrl(proofUrl);
         sub.setStatus("PENDING");
 
+        achievementDao.create(sub);
+        logger.info("成果提交成功: id={}, teamId={}, category={}, subType={}", sub.getId(), teamId, cleanCategory, cleanSubType);
+        return achievementDao.findById(sub.getId());
+    }
+
+    // 新增：支持 MultipartFile 文件上传
+    public AchievementSubmission submitMultipart(int teamId, String category, String subType, String title, String description, MultipartFile proof) {
+        if (teamId <= 0) {
+            throw new IllegalArgumentException("参数错误: teamId");
+        }
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("请选择成果类型");
+        }
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("请填写名称/标题");
+        }
+        if (description == null) {
+            description = "";
+        }
+        if (proof == null || proof.isEmpty()) {
+            throw new IllegalArgumentException("请上传证明材料");
+        }
+        String cleanCategory = category.trim().toUpperCase();
+        String cleanSubType = (subType == null || subType.trim().isEmpty()) ? null : subType.trim().toUpperCase();
+        String ext = "";
+        String original = proof.getOriginalFilename();
+        if (original != null && original.contains(".")) {
+            ext = original.substring(original.lastIndexOf("."));
+        }
+        String fileName = "achievements/" + teamId + "_" + System.currentTimeMillis() + ext;
+        String proofUrl = baiduService.uploadToBos(proof, fileName);
+        if (proofUrl == null) {
+            logger.warn("成果提交失败: BOS上传失败 teamId={}, category={}", teamId, cleanCategory);
+            throw new IllegalStateException("证明材料上传失败，请重试");
+        }
+        AchievementSubmission sub = new AchievementSubmission();
+        sub.setTeamId(teamId);
+        sub.setCategory(cleanCategory);
+        sub.setSubType(cleanSubType);
+        sub.setTitle(title.trim());
+        sub.setDescription(description.trim());
+        sub.setProofUrl(proofUrl);
+        sub.setStatus("PENDING");
         achievementDao.create(sub);
         logger.info("成果提交成功: id={}, teamId={}, category={}, subType={}", sub.getId(), teamId, cleanCategory, cleanSubType);
         return achievementDao.findById(sub.getId());

@@ -10,11 +10,18 @@ import com.campuscoin.model.Transaction;
 import com.campuscoin.model.admin.AdminAchievementListItem;
 import com.campuscoin.model.admin.AdminOperationLog;
 import com.campuscoin.payload.PagedResponse;
+import com.campuscoin.service.BaiduService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.baidubce.services.bos.model.BosObject;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.List;
 
 /**
@@ -30,16 +37,21 @@ public class AdminAchievementService {
     private final TransactionDao transactionDao;
     private final AdminOperationLogDao adminOperationLogDao;
 
+    private final BaiduService baiduService;
+
+    @Autowired
     public AdminAchievementService(AdminAchievementDao adminAchievementDao,
                                   AchievementDao achievementDao,
                                   TeamDao teamDao,
                                   TransactionDao transactionDao,
-                                  AdminOperationLogDao adminOperationLogDao) {
+                                  AdminOperationLogDao adminOperationLogDao,
+                                  BaiduService baiduService) {
         this.adminAchievementDao = adminAchievementDao;
         this.achievementDao = achievementDao;
         this.teamDao = teamDao;
         this.transactionDao = transactionDao;
         this.adminOperationLogDao = adminOperationLogDao;
+        this.baiduService = baiduService;
     }
 
     /**
@@ -64,8 +76,56 @@ public class AdminAchievementService {
         AdminAchievementListItem detail = adminAchievementDao.getDetailById(id);
         if (detail == null) {
             logger.warn("成果不存在 - ID:{}", id);
+            return null;
+        }
+        // 替换proofUrl为签名下载链接（3天有效），兼容带路径的key
+        if (detail.getProofUrl() != null && !detail.getProofUrl().isEmpty()) {
+            String signedUrl = baiduService.generateBosSignedUrlFromUrl(detail.getProofUrl(), 259200);
+            if (signedUrl != null) {
+                detail.setProofUrl(signedUrl);
+            }
         }
         return detail;
+    }
+
+    /**
+     * 后端代理下载附件，避免前端签名访问受限
+     */
+    public boolean writeProofToResponse(Integer id, HttpServletResponse response) {
+        AdminAchievementListItem detail = adminAchievementDao.getDetailById(id);
+        if (detail == null || detail.getProofUrl() == null || detail.getProofUrl().isEmpty()) {
+            return false;
+        }
+        String key = baiduService.extractKeyFromUrl(detail.getProofUrl());
+        if (key == null || key.isEmpty()) {
+            return false;
+        }
+        try {
+            BosObject obj = baiduService.getObject(key);
+            if (obj == null || obj.getObjectContent() == null) {
+                return false;
+            }
+            String filename = key;
+            int idx = key.lastIndexOf('/');
+            if (idx != -1 && idx + 1 < key.length()) {
+                filename = key.substring(idx + 1);
+            }
+            response.setContentType("application/octet-stream");
+            response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(filename, "UTF-8"));
+            try (InputStream in = obj.getObjectContent();
+                 java.io.OutputStream out = response.getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, len);
+                }
+                out.flush();
+            }
+            return true;
+        } catch (Exception e) {
+            logger.error("下载附件失败 - ID:{}, key:{}", id, key, e);
+            return false;
+        }
     }
 
     /**

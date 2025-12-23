@@ -1,3 +1,8 @@
+/* 统一按钮文字字号 */
+.btn-text {
+  font-size: 32rpx;
+  font-weight: 800;
+}
 <template>
   <view class="container">
     <view class="shell">
@@ -8,11 +13,9 @@
 
       <view class="tabs glass-card panel">
         <view :class="['tab', activeTab === 'submit' ? 'active' : '']" @tap="switchTab('submit')">
-          <text class="tab-icon">📝</text>
           <text>提交成果</text>
         </view>
         <view :class="['tab', activeTab === 'mine' ? 'active' : '']" @tap="switchTab('mine')">
-          <text class="tab-icon">🗂️</text>
           <text>我的记录</text>
         </view>
       </view>
@@ -24,7 +27,6 @@
 
         <view class="row clickable" @tap="openCategoryPicker">
           <view class="row-left">
-            <text class="row-icon">🧭</text>
             <text class="row-label">成果类型</text>
           </view>
           <view class="row-right">
@@ -35,7 +37,6 @@
 
         <view v-if="showSubType" class="row clickable" @tap="openSubTypePicker">
           <view class="row-left">
-            <text class="row-icon">🧩</text>
             <text class="row-label">细分类型</text>
           </view>
           <view class="row-right">
@@ -46,7 +47,6 @@
 
         <view class="row">
           <view class="row-left">
-            <text class="row-icon">🏷️</text>
             <text class="row-label">名称/标题</text>
           </view>
           <view class="row-right">
@@ -56,7 +56,6 @@
 
         <view class="block">
           <view class="block-head">
-            <text class="row-icon">💬</text>
             <text class="row-label">简要说明</text>
           </view>
           <view class="block-body">
@@ -66,7 +65,6 @@
 
         <view class="row clickable" @tap="pickProof">
           <view class="row-left">
-            <text class="row-icon">📎</text>
             <text class="row-label">证明材料</text>
           </view>
           <view class="row-right">
@@ -81,18 +79,16 @@
           </template>
           <template v-else>
             <view class="file-preview">
-              <text class="file-icon">📎</text>
               <text class="file-name">{{ proofFile?.name || proofPreview }}</text>
             </view>
           </template>
           <view class="proof-actions">
-            <button class="ghost-btn" @tap="pickProof">重新选择</button>
-            <button class="danger-btn" @tap="clearProof">移除</button>
+            <button class="ghost-btn" style="font-size:32rpx" @tap="pickProof">重新选择</button>
+            <button class="danger-btn" style="font-size:32rpx" @tap="clearProof">移除</button>
           </view>
         </view>
 
         <button class="primary-btn" :disabled="submitting" @tap="submit">
-          <text class="btn-icon">🚀</text>
           <text class="btn-text">{{ submitting ? '提交中...' : '提交审核' }}</text>
         </button>
 
@@ -109,12 +105,17 @@
           </view>
 
           <view v-if="mine.length === 0" class="empty">
-            <text class="empty-icon">🗂️</text>
             <text class="empty-text">暂无提交记录</text>
+            <text class="empty-sub">去“提交成果”里提交一条吧</text>
+            <button class="primary-btn" @tap="switchTab('submit')">
+              <text class="btn-text">去提交</text>
+            </button>
+          </view>
+
+          <view v-else class="items">
             <view class="item" v-for="it in mine" :key="it.id">
               <view class="item-top">
                 <view class="item-left">
-                  <text class="item-icon">{{ categoryIcon(it.category) }}</text>
                   <view class="item-main">
                     <text class="item-title">{{ it.title }}</text>
                     <text class="item-meta">{{ categoryText(it.category, it.subType) }} · {{ formatTime(it.createdAt) }}</text>
@@ -128,9 +129,9 @@
               </view>
 
               <view class="item-bottom">
-                <text v-if="it.status === 'APPROVED'" class="reward">🎉 +{{ it.rewardCoins }} 币</text>
-                <text v-else-if="it.status === 'REJECTED'" class="reject">❗ {{ it.rejectReason || '已驳回' }}</text>
-                <text v-else class="pending">⏳ 等待管理员审核</text>
+                <text v-if="it.status === 'APPROVED'" class="reward">+{{ it.rewardCoins }} 币</text>
+                <text v-else-if="it.status === 'REJECTED'" class="reject">{{ it.rejectReason || '已驳回' }}</text>
+                <text v-else class="pending">等待管理员审核</text>
               </view>
             </view>
           </view>
@@ -155,6 +156,7 @@ const description = ref('');
 
 const proofPreview = ref('');
 const proofBase64 = ref('');
+const proofFile = ref(null); // 新增
 
 const mine = ref([]);
 
@@ -234,48 +236,18 @@ const openSubTypePicker = () => {
   });
 };
 
-function pathToBase64(path) {
-  return new Promise((resolve, reject) => {
-    fetch(path)
-      .then(response => response.blob())
-      .then(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-  });
-}
-
 const pickProof = () => {
-  uni.chooseImage({
+  uni.chooseFile({
     count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['camera', 'album'],
+    type: 'all',
+    extension: ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx', '.zip'],
     success: (res) => {
-      const fp = res.tempFilePaths[0];
-      proofPreview.value = fp;
-
-      // #ifdef H5
-      pathToBase64(fp).then((b64) => {
-        proofBase64.value = b64;
-      }).catch(() => {
-        uni.showToast({ title: '图片处理失败', icon: 'none' });
-      });
-      // #endif
-
-      // #ifndef H5
-      uni.getFileSystemManager().readFile({
-        filePath: fp,
-        encoding: 'base64',
-        success: (r) => {
-          proofBase64.value = r.data;
-        },
-        fail: () => {
-          uni.showToast({ title: '图片读取失败', icon: 'none' });
-        }
-      });
-      // #endif
+      const file = res.tempFiles[0];
+      proofPreview.value = file.path || file.name;
+      proofFile.value = file;
+    },
+    fail: () => {
+      uni.showToast({ title: '文件选择失败', icon: 'none' });
     }
   });
 };
@@ -298,7 +270,7 @@ const submit = () => {
     uni.showToast({ title: '请填写名称/标题', icon: 'none' });
     return;
   }
-  if (!proofBase64.value) {
+  if (!proofFile.value) {
     uni.showToast({ title: '请上传证明材料', icon: 'none' });
     return;
   }
@@ -308,29 +280,31 @@ const submit = () => {
   uni.showLoading({ title: '提交中...' });
 
   const sessionId = getSessionId();
-  uni.request({
+  uni.uploadFile({
     url: `${baseUrl}/api/achievements`,
-    method: 'POST',
-    header: {
-      'Content-Type': 'application/json',
-      'X-Session-Id': sessionId
-    },
-    withCredentials: true,
-    data: {
+    filePath: proofFile.value.path || proofFile.value.name,
+    name: 'proof',
+    formData: {
       category: category.value,
       subType: subType.value || null,
       title: title.value,
-      description: description.value,
-      proofBase64: proofBase64.value
+      description: description.value
+    },
+    header: {
+      'X-Session-Id': sessionId
     },
     success: async (res) => {
       uni.hideLoading();
       submitting.value = false;
+      let data = res.data;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch {}
+      }
       if (res.statusCode === 401) {
         handle401();
         return;
       }
-      if (res.statusCode === 200 && res.data && res.data.success) {
+      if (res.statusCode === 200 && data && data.success) {
         uni.showToast({ title: '提交成功', icon: 'success' });
         // reset
         title.value = '';
@@ -338,7 +312,7 @@ const submit = () => {
         clearProof();
         await switchTab('mine');
       } else {
-        uni.showToast({ title: (res.data && res.data.message) || '提交失败', icon: 'none' });
+        uni.showToast({ title: (data && data.message) || '提交失败', icon: 'none' });
       }
     },
     fail: () => {
@@ -657,6 +631,30 @@ onShow(async () => {
   height: 320rpx;
 }
 
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  background: rgba($bg-color, 0.9);
+  margin-top: 10rpx;
+}
+
+.file-icon {
+  font-size: 36rpx;
+  color: $text-main;
+}
+
+.file-name {
+  font-size: 28rpx;
+  color: $text-main;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .proof-actions {
   display: flex;
   gap: 16rpx;
@@ -860,3 +858,14 @@ onShow(async () => {
   font-weight: 800;
 }
 </style>
+
+/* proof-actions按钮专用文字样式 */
+.proof-btn-text {
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+/* 小字体样式 */
+.small-text {
+  font-size: 22rpx !important;
+}

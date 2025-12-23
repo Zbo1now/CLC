@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -27,26 +28,28 @@ public class AchievementController {
         this.achievementService = achievementService;
     }
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<Map<String, Object>>> submit(@RequestBody SubmitRequest req,
-                                                                  HttpServletRequest request,
-                                                                  HttpSession session) {
+    @PostMapping(consumes = "multipart/form-data")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> submit(
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "subType", required = false) String subType,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestPart(value = "proof", required = false) MultipartFile proof,
+            HttpServletRequest request,
+            HttpSession session) {
         Integer teamId = SessionHelper.resolveTeamId(request, session);
         String teamName = SessionHelper.resolveTeamName(request, session);
         if (teamId == null || teamName == null) {
             logger.warn("成果提交失败: 未登录");
             return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
         }
-
         try {
-            AchievementSubmission created = achievementService.submit(
-                    teamId,
-                    req != null ? req.getCategory() : null,
-                    req != null ? req.getSubType() : null,
-                    req != null ? req.getTitle() : null,
-                    req != null ? req.getDescription() : null,
-                    req != null ? req.getProofBase64() : null
-            );
+            AchievementSubmission created;
+            if (proof != null && proof.getSize() > 0) {
+                created = achievementService.submitMultipart(teamId, category, subType, title, description, proof);
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("请上传证明材料"));
+            }
             Map<String, Object> data = new HashMap<>();
             data.put("submission", created);
             logger.info("成果提交API成功: teamId={}, teamName={}, id={}", teamId, teamName, created != null ? created.getId() : null);
@@ -87,53 +90,5 @@ public class AchievementController {
             return ResponseEntity.badRequest().body(ApiResponse.fail("成果不存在"));
         }
         return ResponseEntity.ok(ApiResponse.ok("获取成功", sub));
-    }
-
-    public static class SubmitRequest {
-        private String category;
-        private String subType;
-        private String title;
-        private String description;
-        private String proofBase64;
-
-        public String getCategory() {
-            return category;
-        }
-
-        public void setCategory(String category) {
-            this.category = category;
-        }
-
-        public String getSubType() {
-            return subType;
-        }
-
-        public void setSubType(String subType) {
-            this.subType = subType;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public String getProofBase64() {
-            return proofBase64;
-        }
-
-        public void setProofBase64(String proofBase64) {
-            this.proofBase64 = proofBase64;
-        }
     }
 }

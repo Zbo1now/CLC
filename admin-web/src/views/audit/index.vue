@@ -84,7 +84,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="title" label="成果标题" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="subType" label="子类型" width="120" show-overflow-tooltip />
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
@@ -171,15 +170,14 @@
               {{ currentAchievement.category }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="子类型">{{ currentAchievement.subType || '-' }}</el-descriptions-item>
           <el-descriptions-item label="成果标题" :span="2">{{ currentAchievement.title }}</el-descriptions-item>
           <el-descriptions-item label="成果描述" :span="2">
             <div class="description-text">{{ currentAchievement.description || '-' }}</div>
           </el-descriptions-item>
           <el-descriptions-item label="附件" :span="2">
             <el-link
-              v-if="currentAchievement.proofUrl"
-              :href="currentAchievement.proofUrl"
+              v-if="currentAchievement.id && currentAchievement.proofUrl"
+              :href="`/api/admin/achievements/${currentAchievement.id}/attachment`"
               target="_blank"
               type="primary"
               :icon="Link"
@@ -521,6 +519,20 @@ const handleConfirmReject = async () => {
 }
 
 // 工具函数
+// 子类型友好显示
+const getSubTypeText = (category, subType) => {
+  if (!subType || subType === 'NULL' || subType === 'null' || subType === null) return '-';
+  if (category === 'PATENT' || category === '专利申请') {
+    if (subType === 'ACCEPTED') return '受理';
+    if (subType === 'GRANTED') return '授权';
+  }
+  if (category === 'COMPETITION' || category === '竞赛获奖') {
+    if (subType === 'SCHOOL') return '校级';
+    if (subType === 'PROVINCE') return '省级';
+    if (subType === 'NATIONAL') return '国家级';
+  }
+  return '-';
+}
 const formatTime = (time) => {
   if (!time) return '-'
   return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
