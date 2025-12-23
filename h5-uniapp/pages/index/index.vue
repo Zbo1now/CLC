@@ -25,7 +25,7 @@
           </view>
         </view>
         <button class="btn-submit" @tap="submitLogin">
-          <text>🚀</text> 立即登录
+          立即登录
         </button>
         <view class="footer-hint">未注册？点击上方“注册”加入我们</view>
       </view>

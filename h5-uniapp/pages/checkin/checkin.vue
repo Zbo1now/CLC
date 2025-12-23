@@ -8,11 +8,11 @@
     <view class="stats-card glass-card">
       <view class="stat-item">
         <text class="stat-val">{{ currentStreak }}</text>
-        <text class="stat-label"><text class="stat-icon">🔥</text> 连续打卡(天)</text>
+        <text class="stat-label">连续打卡(天)</text>
       </view>
       <view class="stat-item">
         <text class="stat-val">{{ balance }}</text>
-        <text class="stat-label"><text class="stat-icon">💰</text> 当前积分</text>
+        <text class="stat-label">当前积分</text>
       </view>
     </view>
 

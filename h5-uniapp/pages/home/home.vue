@@ -10,7 +10,7 @@
       </view>
     </view>
 
-    <!-- 公告栏（替代首页余额大盘） -->
+    <!-- 公告栏 -->
     <view class="glass-card bulletin-card">
       <view class="card-header">
         <text class="card-label">公告栏</text>
@@ -36,7 +36,6 @@
     <view class="glass-card module-card">
       <view class="module-header">
         <view class="module-left">
-          <text class="module-icon">💎</text>
           <text class="module-title">获取虚拟币</text>
         </view>
         <text class="module-sub">Earn</text>
@@ -65,7 +64,6 @@
     <view class="glass-card module-card">
       <view class="module-header">
         <view class="module-left">
-          <text class="module-icon">🧾</text>
           <text class="module-title">消费虚拟币</text>
         </view>
         <text class="module-sub">Spend</text>

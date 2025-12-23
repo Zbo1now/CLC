@@ -190,7 +190,7 @@ const onStartTimeChange = async (e) => {
   const v = e?.detail?.value;
   if (!v) return;
   startTime.value = v;
-  if (!isEndAfterStart(startTime.value, endTime.value)) {
+  if (!isEndAfterStart(dateStr.value, startTime.value, endTime.value)) {
     endTime.value = plusOneHour(startTime.value);
   }
   await refreshDevices();
@@ -208,7 +208,7 @@ const refreshDevices = () => {
   const startAt = buildTimestamp(dateStr.value, startTime.value);
   const endAt = buildTimestamp(dateStr.value, endTime.value);
 
-  if (!isEndAfterStart(startTime.value, endTime.value)) {
+  if (!isEndAfterStart(dateStr.value, startTime.value, endTime.value)) {
     uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' });
     return Promise.resolve();
   }
@@ -527,20 +527,33 @@ function plusOneHour(t) {
 }
 
 function normalizeTime(input) {
-  const s = String(input || '').trim();
+  let s = String(input || '').trim();
   if (!s) return null;
-  const m = /^([0-1]?\d|2[0-3])[:：]([0-5]\d)$/.exec(s);
+  // 兼容："yyyy-MM-dd HH:mm" / "yyyy-MM-dd HH:mm:ss"
+  if (s.includes(' ')) s = s.split(' ').pop();
+  // 兼容："HH:mm:ss"（忽略秒）以及中文冒号
+  const m = /^([0-1]?\d|2[0-3])[:：]([0-5]\d)(?:[:：]([0-5]\d))?$/.exec(s);
   if (!m) return null;
   return `${String(parseInt(m[1], 10)).padStart(2, '0')}:${m[2]}`;
 }
 
-function isEndAfterStart(start, end) {
-  const s = normalizeTime(start);
-  const e = normalizeTime(end);
-  if (!s || !e) return false;
-  const [sh, sm] = s.split(':').map(Number);
-  const [eh, em] = e.split(':').map(Number);
-  return eh * 60 + em > sh * 60 + sm;
+function toDT(date, time) {
+  const d = String(date || '').trim();
+  const t = normalizeTime(time);
+  if (!d || !t) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return null;
+  const [hh, mm] = t.split(':').map(Number);
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), hh, mm, 0, 0);
+  const ms = dt.getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+function isEndAfterStart(date, start, end) {
+  const a = toDT(date, start);
+  const b = toDT(date, end);
+  if (a == null || b == null) return false;
+  return b > a;
 }
 </script>
 

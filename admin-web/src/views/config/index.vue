@@ -15,7 +15,7 @@
           :icon="Refresh" 
           @click="handleRefreshCache"
           :loading="refreshing">
-          刷新缓存
+          刷新
         </el-button>
       </div>
     </div>
@@ -313,7 +313,7 @@ const handleCloseDialog = () => {
 const handleRefreshCache = async () => {
   try {
     await ElMessageBox.confirm(
-      '刷新缓存后，所有配置将立即生效。是否继续？',
+      '刷新后，所有配置将立即生效。是否继续？',
       '提示',
       {
         confirmButtonText: '确定',

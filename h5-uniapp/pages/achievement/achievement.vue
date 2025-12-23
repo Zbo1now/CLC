@@ -76,7 +76,15 @@
         </view>
 
         <view v-if="proofPreview" class="proof-preview">
-          <image class="proof-img" :src="proofPreview" mode="aspectFill" />
+          <template v-if="/\.(jpg|jpeg|png)$/i.test(proofPreview)">
+            <image class="proof-img" :src="proofPreview" mode="aspectFill" />
+          </template>
+          <template v-else>
+            <view class="file-preview">
+              <text class="file-icon">📎</text>
+              <text class="file-name">{{ proofFile?.name || proofPreview }}</text>
+            </view>
+          </template>
           <view class="proof-actions">
             <button class="ghost-btn" @tap="pickProof">重新选择</button>
             <button class="danger-btn" @tap="clearProof">移除</button>
@@ -103,14 +111,6 @@
           <view v-if="mine.length === 0" class="empty">
             <text class="empty-icon">🗂️</text>
             <text class="empty-text">暂无提交记录</text>
-            <text class="empty-sub">去“提交成果”里提交一条吧</text>
-            <button class="primary-btn" @tap="switchTab('submit')">
-              <text class="btn-icon">📝</text>
-              <text class="btn-text">去提交</text>
-            </button>
-          </view>
-
-          <view v-else class="items">
             <view class="item" v-for="it in mine" :key="it.id">
               <view class="item-top">
                 <view class="item-left">
