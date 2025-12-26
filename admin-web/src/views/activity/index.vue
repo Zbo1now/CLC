@@ -458,13 +458,19 @@ const loadActivityList = async () => {
     })
 
     if (res.success) {
-      tableData.value = res.data.items
-      pagination.total = res.data.total
-
+      // 按开始时间倒序排序
+      tableData.value = res.data.items.slice().sort((a, b) => {
+        const t1 = new Date(a.startTime).getTime();
+        const t2 = new Date(b.startTime).getTime();
+        return t2 - t1;
+      });
+      pagination.total = res.data.total;
+      // 调试：打印location字段
+      console.log('活动列表数据', tableData.value);
       // 计算统计数据
-      updateStats()
+      updateStats();
     } else {
-      ElMessage.error(res.message || '加载失败')
+      ElMessage.error(res.message || '加载失败');
     }
   } catch (error) {
     console.error('加载活动列表失败:', error)

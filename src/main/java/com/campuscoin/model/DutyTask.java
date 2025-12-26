@@ -10,6 +10,14 @@ public class DutyTask {
     private Integer requiredPeople;
     private Integer rewardCoins;
     private String taskDesc;
+    private String location; // 活动地点
+        public String getLocation() {
+            return location;
+        }
+
+        public void setLocation(String location) {
+            this.location = location;
+        }
     private Timestamp createdAt;
     private Timestamp updatedAt;
 

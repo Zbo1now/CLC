@@ -59,10 +59,12 @@
               <view class="task-meta">
                 <text class="meta-line">🕒 {{ fmt(t.startTime) }} ～ {{ fmt(t.endTime) }}</text>
                 <text class="meta-line">👥 名额：{{ t.signupCount || 0 }}/{{ t.requiredPeople || 0 }}（剩余 {{ t.remaining || 0 }}）</text>
+                <text class="meta-line">📍 地点：{{ t.location || '—' }}</text>
                 <text class="meta-line">💎 奖励：+{{ t.rewardCoins || 0 }} 币/人</text>
               </view>
 
               <view v-if="t.taskDesc" class="desc">{{ t.taskDesc }}</view>
+              <view v-if="t.detailDesc" class="desc">{{ t.detailDesc }}</view>
 
               <view class="actions">
                 <!-- 在"我的报名"标签页显示取消按钮 -->
@@ -104,7 +106,13 @@ const loading = ref(false);
 const activeTab = ref('available');
 
 const shownTasks = computed(() => {
-  const list = Array.isArray(tasks.value) ? tasks.value : [];
+  const list = Array.isArray(tasks.value) ? tasks.value.slice() : [];
+  // 按开始时间倒序排序
+  list.sort((a, b) => {
+    const t1 = new Date(a.startTime).getTime();
+    const t2 = new Date(b.startTime).getTime();
+    return t2 - t1;
+  });
   if (activeTab.value === 'mine') {
     return list.filter(t => String(t?.mySignupStatus || '').trim() !== '');
   }
