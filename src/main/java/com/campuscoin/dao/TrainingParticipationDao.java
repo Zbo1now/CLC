@@ -10,6 +10,21 @@ import java.util.List;
 public interface TrainingParticipationDao {
 
     @Insert("INSERT INTO activity_participations (activity_id, team_id, team_name, completion_notes, status, review_status) " +
+            "SELECT #{eventId}, #{teamId}, t.team_name, '报名', 'APPLIED', 'PENDING' FROM teams t WHERE t.id = #{teamId}")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int createSignup(TrainingParticipation p);
+
+    @Select("SELECT COUNT(1) FROM activity_participations WHERE activity_id = #{eventId} AND status != 'CANCELLED' AND review_status != 'REJECTED'")
+    int countActiveByEvent(@Param("eventId") int eventId);
+
+    @Update("UPDATE activity_participations SET completion_notes = CONCAT('证明材料：', #{proofUrl}, '\\n备注：', #{note}), review_status = 'PENDING', updated_at = NOW() " +
+            "WHERE activity_id = #{eventId} AND team_id = #{teamId}")
+    int updateSubmission(@Param("eventId") int eventId,
+                         @Param("teamId") int teamId,
+                         @Param("proofUrl") String proofUrl,
+                         @Param("note") String note);
+
+    @Insert("INSERT INTO activity_participations (activity_id, team_id, team_name, completion_notes, status, review_status) " +
             "SELECT #{eventId}, #{teamId}, t.team_name, CONCAT('证明材料：', #{proofUrl}, '\n备注：', #{note}), 'APPLIED', #{status} FROM teams t WHERE t.id = #{teamId}")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int create(TrainingParticipation p);

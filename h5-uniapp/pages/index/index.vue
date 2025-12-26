@@ -56,9 +56,9 @@
           </view>
         </view>
         <button class="btn-submit" @tap="submitRegister">
-          <text>✨</text> 注册并领取 500 币
+          注册
         </button>
-        <view class="footer-hint">注册即代表同意服务条款</view>
+        <!-- 注册即代表同意服务条款 -->
       </view>
     </view>
   </view>

@@ -25,6 +25,8 @@ import java.util.List;
  */
 @Service
 public class AdminParticipationService {
+    @Autowired
+    private com.campuscoin.service.BaiduService baiduService;
 
     private static final Logger logger = LoggerFactory.getLogger(AdminParticipationService.class);
 
@@ -73,6 +75,15 @@ public class AdminParticipationService {
         response.setTotal(total);
         response.setPage(page);
         response.setPageSize(pageSize);
+        // 自动补充标准化 proofUrl 字段，便于前端直接展示
+        for (AdminParticipationListItem item : items) {
+            String proofUrl = item.getProofUrl();
+            // 兼容路径型/历史数据，统一转为BOS公有读域名型
+            if (proofUrl != null && !proofUrl.isEmpty()) {
+                // 这里建议注入BaiduService为成员变量
+                item.setProofUrl(baiduService.toBosPublicUrl(proofUrl));
+            }
+        }
 
         return response;
     }
@@ -124,12 +135,6 @@ public class AdminParticipationService {
             return false;
         }
 
-        // 检查是否已达到最大参与人数
-        if (activity.getCurrentParticipants() >= activity.getMaxParticipants()) {
-            logger.warn("活动参与人数已满: activityId={}, current={}, max={}",
-                       activity.getId(), activity.getCurrentParticipants(), activity.getMaxParticipants());
-            return false;
-        }
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
 

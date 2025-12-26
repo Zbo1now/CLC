@@ -17,10 +17,15 @@ public class TrainingEvent {
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
+    // participation limits
+    private Integer maxParticipants;
+    private Integer currentParticipants;
+
     // computed fields for UI
     private String eventStatus; // NOT_STARTED / IN_PROGRESS / ENDED
     private String myParticipationStatus; // null / PENDING / APPROVED / REJECTED
     private Integer myParticipationId;
+    private Boolean myProofSubmitted; // 是否已提交过证明材料
 
     public Integer getId() {
         return id;
@@ -126,6 +131,22 @@ public class TrainingEvent {
         this.updatedAt = updatedAt;
     }
 
+    public Integer getMaxParticipants() {
+        return maxParticipants;
+    }
+
+    public void setMaxParticipants(Integer maxParticipants) {
+        this.maxParticipants = maxParticipants;
+    }
+
+    public Integer getCurrentParticipants() {
+        return currentParticipants;
+    }
+
+    public void setCurrentParticipants(Integer currentParticipants) {
+        this.currentParticipants = currentParticipants;
+    }
+
     public String getEventStatus() {
         return eventStatus;
     }
@@ -148,5 +169,13 @@ public class TrainingEvent {
 
     public void setMyParticipationId(Integer myParticipationId) {
         this.myParticipationId = myParticipationId;
+    }
+
+    public Boolean getMyProofSubmitted() {
+        return myProofSubmitted;
+    }
+
+    public void setMyProofSubmitted(Boolean myProofSubmitted) {
+        this.myProofSubmitted = myProofSubmitted;
     }
 }

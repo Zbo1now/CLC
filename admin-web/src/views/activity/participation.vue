@@ -64,6 +64,12 @@
             {{ formatDateTime(row.applyTime) }}
           </template>
         </el-table-column>
+        <el-table-column prop="proofUrl" label="申报材料" width="120">
+          <template #default="{ row }">
+            <el-button v-if="row.proofUrl" type="primary" size="small" @click="handleViewProof(row.proofUrl)">查看</el-button>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="reviewStatus" label="审核状态" width="100">
           <template #default="{ row }">
             <el-tag :type="getReviewStatusType(row.reviewStatus)">
@@ -244,6 +250,21 @@ const loading = ref(false)
 const tableData = ref([])
 const selectedIds = ref([])
 
+// 提取证明材料图片链接
+function extractProofUrl(notes) {
+  if (!notes) return '';
+  // 支持“证明材料：链接\n备注：...”格式
+  const match = notes.match(/证明材料：([^\n\s]+)/);
+  if (match && match[1]) return match[1];
+  return '';
+}
+
+// 查看材料
+const handleViewProof = (proofUrl) => {
+  if (!proofUrl) return;
+  window.open(proofUrl, '_blank');
+};
+
 // 驳回对话框
 const rejectDialogVisible = ref(false)
 const rejectFormRef = ref(null)
@@ -332,7 +353,11 @@ const loadParticipationList = async () => {
     })
 
     if (res.success) {
-      tableData.value = res.data.items
+      // 自动补充 proofUrl 字段
+      tableData.value = res.data.items.map(item => ({
+        ...item,
+        proofUrl: item.proofUrl || extractProofUrl(item.completionNotes)
+      }))
       pagination.total = res.data.total
     } else {
       ElMessage.error(res.message || '加载失败')

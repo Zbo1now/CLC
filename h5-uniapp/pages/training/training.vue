@@ -45,7 +45,11 @@
                   <text class="item-icon">{{ itemIcon(it) }}</text>
                   <view class="item-main">
                     <text class="item-title">{{ itemTitle(it) }}</text>
-                    <text class="item-meta">{{ itemMeta(it) }}</text>
+                    <view class="item-meta">
+                      <text v-if="rangeText(it)" class="meta-line">🕒 {{ rangeText(it) }}</text>
+                      <text v-if="locationText(it)" class="meta-line">📍 {{ locationText(it) }}</text>
+                      <text class="meta-line">💰 +{{ rewardText(it) }} 币</text>
+                    </view>
                   </view>
                 </view>
 
@@ -98,15 +102,28 @@ const fmt = (ts) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const fmtDay = (v) => {
+const fmtMDHM = (v) => {
   if (!v) return '';
   const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v).slice(0, 10);
+  if (Number.isNaN(d.getTime())) {
+    return String(v).slice(0, 16).replace('T', ' ');
+  }
   const now = new Date();
   const sameYear = d.getFullYear() === now.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return sameYear ? `${mm}-${dd}` : `${d.getFullYear()}-${mm}-${dd}`;
+  const pad = (n) => String(n).padStart(2, '0');
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return sameYear ? `${mm}-${dd} ${hh}:${mi}` : `${d.getFullYear()}-${mm}-${dd} ${hh}:${mi}`;
+};
+
+const fmtHM = (v) => {
+  if (!v) return '';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 const fetchEvents = async () => {
@@ -175,7 +192,23 @@ const switchTab = (t) => {
 
 const shownList = computed(() => {
   if (activeTab.value === 'mine') return myParticipations.value;
-  return events.value;
+  // 活动列表排序：未开始、进行中在前，已结束在后
+  return events.value.slice().sort((a, b) => {
+    const statusOrder = (st) => {
+      const s = String(st || '').toUpperCase();
+      if (s === 'NOT_STARTED') return 0;
+      if (s === 'IN_PROGRESS') return 1;
+      if (s === 'ENDED') return 2;
+      return 99;
+    };
+    const ao = statusOrder(a.eventStatus);
+    const bo = statusOrder(b.eventStatus);
+    if (ao !== bo) return ao - bo;
+    // 同状态下按开始时间降序
+    const at = new Date(a.startTime).getTime() || 0;
+    const bt = new Date(b.startTime).getTime() || 0;
+    return bt - at;
+  });
 });
 
 const itKey = (it) => {
@@ -206,13 +239,29 @@ const itemTitle = (it) => {
   return it?.eventName || '培训活动';
 };
 
-const itemMeta = (it) => {
-  const type = it?.eventType || '培训/会议';
-  const start = fmtDay(it?.startTime);
-  const end = fmtDay(it?.endTime);
-  const place = locationText(it);
-  const range = start && end ? `${start}～${end}` : (start || end || '');
-  return `${type}${range ? ' · ' + range : ''}${place ? ' · ' + place : ''}`;
+const typeText = (it) => {
+  return it?.eventType || '培训/会议';
+};
+
+const rangeText = (it) => {
+  const s = it?.startTime;
+  const e = it?.endTime;
+  if (!s && !e) return '';
+
+  const sd = new Date(s);
+  const ed = new Date(e);
+  const validS = s && !Number.isNaN(sd.getTime());
+  const validE = e && !Number.isNaN(ed.getTime());
+
+  if (validS && validE) {
+    const sameDay = sd.getFullYear() === ed.getFullYear() && sd.getMonth() === ed.getMonth() && sd.getDate() === ed.getDate();
+    if (sameDay) {
+      return `${fmtMDHM(s)} - ${fmtHM(e)}`;
+    }
+    return `${fmtMDHM(s)} - ${fmtMDHM(e)}`;
+  }
+
+  return fmtMDHM(s || e);
 };
 
 const badgeText = (it) => {
@@ -246,8 +295,7 @@ const canSubmit = (it) => {
   if (activeTab.value === 'mine') return false;
   const st = String(it.eventStatus || '').toUpperCase();
   if (st !== 'ENDED') return false;
-  const mine = String(it.myParticipationStatus || '').toUpperCase();
-  return !mine;
+  return !it?.myProofSubmitted;
 };
 
 const bottomText = (it) => {
@@ -258,14 +306,16 @@ const bottomText = (it) => {
     return '⏳ 等待管理员审核';
   }
 
+  const st = String(it.eventStatus || '').toUpperCase();
   const mine = String(it.myParticipationStatus || '').toUpperCase();
+  // 活动未结束且团队已报名，显示“已报名”
+  if ((st === 'NOT_STARTED' || st === 'IN_PROGRESS') && mine) return '已报名';
+  if (!mine && (st === 'IN_PROGRESS' || st === 'ENDED')) return '未报名';
   if (mine === 'APPROVED') return '🎉 已通过（已发币）';
   if (mine === 'REJECTED') return '❗ 已驳回';
   if (mine === 'PENDING') return '⏳ 已提交，待审核';
-
-  const reward = rewardText(it);
-  if (canSubmit(it)) return `🎉 +${reward} 币 · 可提交证明`;
-  return `🎉 +${reward} 币 · 查看详情`;
+  if (canSubmit(it)) return '可提交证明';
+  return '查看详情';
 };
 
 const bottomClass = (it) => {
@@ -490,8 +540,15 @@ const goBack = () => {
 }
 
 .item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.meta-line {
   font-size: 24rpx;
   color: $text-light;
+  line-height: 1.35;
 }
 
 .badge {

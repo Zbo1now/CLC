@@ -24,6 +24,35 @@ import java.util.logging.Logger;
 @Service
 public class BaiduService {
 
+    /**
+     * 将路径型BOS地址（如https://bj.bcebos.com/bucket/key）转为域名型（如https://bucket.bj.bcebos.com/key）
+     * 兼容key、路径型、域名型、全路径等多种输入
+     */
+    public String toBosPublicUrl(String urlOrKey) {
+        if (urlOrKey == null || urlOrKey.trim().isEmpty()) return null;
+        String key = urlOrKey.trim();
+        String bucket = config.getBos().getBucketName();
+        String endpoint = config.getBos().getEndpoint();
+        if (endpoint.endsWith("/")) endpoint = endpoint.substring(0, endpoint.length() - 1);
+        String domain = "https://" + bucket + "." + endpoint.replace("http://", "").replace("https://", "");
+        // 已是域名型
+        if (key.startsWith("http") && key.contains(bucket + ".")) return key;
+        // 路径型 http(s)://bj.bcebos.com/bucket/key
+        String regex = "https?://bj\\.bcebos\\.com/" + bucket + "/(.+)";
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(regex);
+        java.util.regex.Matcher m = p.matcher(key);
+        if (m.matches()) {
+            String realKey = m.group(1);
+            return domain + "/" + realKey;
+        }
+        // 只给了key
+        if (!key.startsWith("http")) {
+            return domain + "/" + key.replaceAll("^/+", "");
+        }
+        // 兜底：原样返回
+        return key;
+    }
+
         /**
          * 生成BOS对象的临时签名下载链接（默认10分钟有效）
          */

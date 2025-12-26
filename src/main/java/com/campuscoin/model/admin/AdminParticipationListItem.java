@@ -6,6 +6,8 @@ import java.sql.Timestamp;
  * 管理员端参与记录列表项（包含团队和活动信息）
  */
 public class AdminParticipationListItem {
+        // 标准化后的材料url（BOS公有读域名型）
+        private String proofUrl;
     private Integer id;
     private Integer activityId;
     private String activityName;
@@ -20,6 +22,28 @@ public class AdminParticipationListItem {
     private Integer coinsRewarded;
     private Timestamp coinsRewardedAt;
     private String completionNotes;
+
+    /**
+     * 自动从completionNotes中提取材料链接（proofUrl），并清洗前缀，兼容历史数据。
+     * 只提取“证明材料：”后第一个非空字符串，去除多余空格和换行。
+     */
+    public String getProofUrl() {
+        // 优先返回标准化后的proofUrl
+        if (proofUrl != null) return proofUrl;
+        if (completionNotes == null) return null;
+        String notes = completionNotes.trim();
+        int idx = notes.indexOf("证明材料：");
+        if (idx == -1) return null;
+        String rest = notes.substring(idx + 5);
+        int endIdx = rest.indexOf("\n");
+        String url = (endIdx == -1 ? rest : rest.substring(0, endIdx)).trim();
+        if (url.isEmpty()) return null;
+        return url;
+    }
+
+    public void setProofUrl(String proofUrl) {
+        this.proofUrl = proofUrl;
+    }
 
     public AdminParticipationListItem() {
     }

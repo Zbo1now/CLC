@@ -97,6 +97,34 @@ public class TrainingEventController {
         }
     }
 
+    // 用户侧：报名参加
+    @PostMapping("/{eventId}/signups")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> signup(@PathVariable int eventId,
+                                                                   HttpServletRequest request,
+                                                                   HttpSession session) {
+        Integer teamId = SessionHelper.resolveTeamId(request, session);
+        String teamName = SessionHelper.resolveTeamName(request, session);
+        if (teamId == null || teamName == null) {
+            return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
+        }
+
+        try {
+            TrainingParticipation p = trainingService.signup(teamId, eventId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("participation", p);
+            logger.info("培训活动报名成功: teamId={}, teamName={}, eventId={}, participationId={}",
+                    teamId, teamName, eventId, p != null ? p.getId() : null);
+            return ResponseEntity.ok(ApiResponse.ok("报名成功", data));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("培训活动报名异常: teamId={}, teamName={}, eventId={}", teamId, teamName, eventId, e);
+            return ResponseEntity.status(500).body(ApiResponse.fail("报名失败，请稍后重试"));
+        }
+    }
+
     // 用户侧：我的申报列表
     @GetMapping("/me/participations")
     public ResponseEntity<ApiResponse<List<TrainingParticipationView>>> myParticipations(HttpServletRequest request,

@@ -232,12 +232,13 @@
       width="700px"
       :close-on-click-modal="false"
     >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="120px"
-      >
+      <div class="centered-form-wrapper">
+        <el-form
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-width="120px"
+        >
         <el-form-item label="活动名称" prop="activityName">
           <el-input v-model="formData.activityName" placeholder="请输入活动名称" />
         </el-form-item>
@@ -297,7 +298,7 @@
           <el-radio-group v-model="formData.participationType">
             <el-radio label="MANUAL_REVIEW">人工审核</el-radio>
           </el-radio-group>
-          <div class="form-tip">团队报名后需要管理员审核通过</div>
+          <!-- <div class="form-tip">团队报名后需要管理员审核通过</div> -->
         </el-form-item>
 
         <el-form-item label="最大参与团队" prop="maxParticipants">
@@ -308,13 +309,17 @@
             style="width: 100%"
           />
         </el-form-item>
-      </el-form>
+
+        </el-form>
+      </div>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ dialogMode === 'create' ? '创建' : '更新' }}
-        </el-button>
+        <div class="centered-form-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="submitting" @click="handleSubmit">
+            {{ dialogMode === 'create' ? '创建' : '更新' }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -768,5 +773,22 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+}
+/* 表单弹窗整体居中美化 */
+.centered-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.centered-form-wrapper .el-form {
+  width: 420px;
+  margin: 0 auto;
+}
+.centered-form-footer {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 8px;
 }
 </style>

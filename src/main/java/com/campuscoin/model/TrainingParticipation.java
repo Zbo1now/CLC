@@ -1,8 +1,19 @@
+
 package com.campuscoin.model;
+
+import com.campuscoin.service.BaiduService;
 
 import java.sql.Timestamp;
 
 public class TrainingParticipation {
+
+        /**
+         * 获取BOS公有读域名型材料地址（需在Service层注入BaiduService后调用）
+         */
+        public String getPublicProofUrl(BaiduService baiduService) {
+            if (baiduService == null) return proofUrl;
+            return baiduService.toBosPublicUrl(proofUrl);
+        }
     private Integer id;
     private Integer eventId;
     private Integer teamId;
