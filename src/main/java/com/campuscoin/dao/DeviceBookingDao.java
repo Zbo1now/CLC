@@ -1,3 +1,4 @@
+        // ...existing code...
 package com.campuscoin.dao;
 
 import com.campuscoin.model.DeviceBooking;
@@ -16,8 +17,8 @@ public interface DeviceBookingDao {
                               @Param("startAt") LocalDateTime startAt,
                               @Param("endAt") LocalDateTime endAt);
 
-    @Insert("INSERT INTO device_bookings (device_id, team_id, start_at, end_at, status) " +
-            "VALUES (#{deviceId}, #{teamId}, #{startAt}, #{endAt}, #{status})")
+    @Insert("INSERT INTO device_bookings (device_id, team_id, start_at, end_at, status, billed_cost) " +
+            "VALUES (#{deviceId}, #{teamId}, #{startAt}, #{endAt}, #{status}, #{billedCost})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int create(DeviceBooking booking);
 
@@ -49,4 +50,25 @@ public interface DeviceBookingDao {
     @Update("UPDATE device_bookings SET status = 'FINISHED', actual_end_at = NOW(), billed_cost = #{billedCost} " +
             "WHERE id = #{id} AND status = 'IN_USE'")
     int finish(@Param("id") int id, @Param("billedCost") int billedCost);
+
+    @Update("UPDATE device_bookings SET status = 'FINISHED', actual_end_at = #{actualEndAt}, billed_cost = #{billedCost} " +
+            "WHERE id = #{id} AND status = 'IN_USE'")
+    int finishAt(@Param("id") int id,
+                 @Param("billedCost") int billedCost,
+                 @Param("actualEndAt") LocalDateTime actualEndAt);
+
+    @Select("SELECT id FROM device_bookings WHERE status = 'IN_USE' AND end_at <= #{now} ORDER BY end_at ASC LIMIT #{limit}")
+    List<Integer> listDueFinishIds(@Param("now") LocalDateTime now, @Param("limit") int limit);
+    
+    /**
+     * 批量将到点的RESERVED预约转为IN_USE，actual_start_at设为start_at
+     */
+    @Update("UPDATE device_bookings SET status = 'IN_USE', actual_start_at = start_at WHERE status = 'RESERVED' AND start_at <= #{now}")
+    int autoStart(@Param("now") java.time.LocalDateTime now);
+
+    /**
+     * 批量将到点的IN_USE预约转为FINISHED，actual_end_at设为end_at
+     */
+    @Update("UPDATE device_bookings SET status = 'FINISHED', actual_end_at = end_at WHERE status = 'IN_USE' AND end_at <= #{now}")
+    int autoFinish(@Param("now") java.time.LocalDateTime now);
 }

@@ -93,7 +93,7 @@
     </dependencies>
 
     <build>
-        <finalName>campuscoin-h5</finalName>
+        <finalName>campuscoin</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

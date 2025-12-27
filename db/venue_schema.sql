@@ -2,6 +2,8 @@
 -- 说明：
 -- 1) venues：场地基础信息与计费规则（按小时）
 -- 2) venue_bookings：团队预约记录（预扣币写入流水，自动取消不退款）
+--
+-- 注意：本文件用于开发环境初始化；生产请使用迁移脚本，避免 DROP TABLE 误删数据。
 
 DROP TABLE IF EXISTS venue_bookings;
 DROP TABLE IF EXISTS venues;
@@ -11,8 +13,9 @@ CREATE TABLE venues (
     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
     venue_name VARCHAR(64) NOT NULL COMMENT '场地名称（如 A1 会议室、路演厅 B）',
     venue_type VARCHAR(32) NOT NULL COMMENT '场地类型（如 会议室/路演厅）',
+    capacity INT NOT NULL DEFAULT 10 COMMENT '容量（可容纳人数）',
     rate_per_hour INT NOT NULL DEFAULT 0 COMMENT '每小时费用（虚拟币）',
-    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE' COMMENT '场地状态（ACTIVE=可用，MAINTENANCE=维护中）',
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE' COMMENT '场地状态（AVAILABLE=可用，MAINTENANCE=维护中）',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_venue_name (venue_name)
@@ -44,7 +47,7 @@ CREATE TABLE venue_bookings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='场地短租预约表（预扣币，不退款）';
 
 -- 示例数据
-INSERT INTO venues (venue_name, venue_type, rate_per_hour, status) VALUES
-('A1 会议室', '会议室', 40, 'ACTIVE'),
-('路演厅 B', '路演厅', 80, 'ACTIVE'),
+INSERT INTO venues (venue_name, venue_type, capacity, rate_per_hour, status) VALUES
+('A1 会议室', '会议室', 10, 40, 'AVAILABLE'),
+('路演厅 B', '路演厅', 60, 80, 'AVAILABLE'),
 ('A2 会议室', '会议室', 35, 'MAINTENANCE');

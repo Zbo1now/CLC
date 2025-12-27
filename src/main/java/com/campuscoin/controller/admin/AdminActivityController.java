@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.sql.Timestamp;
 
 /**
  * 活动管理 Controller
@@ -73,7 +72,7 @@ public class AdminActivityController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
 
             // 校验必填字段
             if (activity.getActivityName() == null || activity.getActivityName().trim().isEmpty()) {
@@ -116,7 +115,7 @@ public class AdminActivityController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
 
             // 校验必填字段
             if (activity.getActivityName() == null || activity.getActivityName().trim().isEmpty()) {
@@ -155,7 +154,7 @@ public class AdminActivityController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
 
             // 校验状态值
             if (!"CANCELLED".equals(status) && !"FINISHED".equals(status)) {
@@ -183,7 +182,7 @@ public class AdminActivityController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
 
             boolean success = adminActivityService.delete(id, adminUsername);
             if (success) {

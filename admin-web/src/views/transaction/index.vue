@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-model-argument -->
 <template>
   <div class="transaction-container">
     <!-- 筛选工具栏 -->
@@ -122,21 +123,6 @@
 
         <el-table-column prop="description" label="说明" min-width="200" show-overflow-tooltip />
 
-        <el-table-column prop="refId" label="关联ID" width="100" align="center">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.refId"
-              link
-              type="primary"
-              size="small"
-              @click="handleRefClick(row)"
-            >
-              {{ row.refId }}
-            </el-button>
-            <span v-else class="text-muted">-</span>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="createdAt" label="变动时间" width="160" align="center">
           <template #default="{ row }">
             {{ formatDateTime(row.createdAt) }}
@@ -146,8 +132,8 @@
 
       <!-- 分页 -->
       <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
+        :current-page="pagination.page"
+        :page-size="pagination.pageSize"
         :page-sizes="[20, 50, 100, 200]"
         :total="pagination.total"
         layout="total, sizes, prev, pager, next, jumper"
@@ -162,7 +148,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, RefreshLeft, Download, Document, User } from '@element-plus/icons-vue'
+import { Search, RefreshLeft, Download, User } from '@element-plus/icons-vue'
 import http from '@/api/http'
 
 const loading = ref(false)
@@ -194,6 +180,8 @@ const txnTypeMap = {
   TRAINING_REWARD: { label: '培训奖励', tag: 'success' },
   WORKSTATION_RENT: { label: '工位租赁', tag: 'warning' },
   WORKSTATION_RENEW: { label: '工位续租', tag: 'warning' },
+  // 历史遗留类型：旧版本设备预约时使用 DEVICE_BOOKING 记预扣
+  DEVICE_BOOKING: { label: '设备预约预扣', tag: 'warning' },
   DEVICE_USAGE: { label: '设备使用', tag: 'warning' },
   EQUIPMENT_HOLD: { label: '器材借用', tag: 'warning' },
   VENUE_HOLD: { label: '场地预约', tag: 'warning' }
@@ -271,11 +259,13 @@ function handleReset() {
   handleSearch()
 }
 
-function handlePageChange() {
+function handlePageChange(page) {
+  pagination.page = page
   fetchList()
 }
 
-function handleSizeChange() {
+function handleSizeChange(size) {
+  pagination.pageSize = size
   pagination.page = 1
   fetchList()
 }
@@ -311,7 +301,7 @@ async function handleExport() {
     }
 
     // 生成 CSV 内容
-    const headers = ['ID', '团队名称', '变动类型', '变动金额', '操作后余额', '说明', '关联ID', '关联类型', '变动时间']
+    const headers = ['ID', '团队名称', '变动类型', '变动金额', '操作后余额', '说明', '变动时间']
     const rows = list.map((row) => [
       row.id,
       row.teamName || '',
@@ -319,8 +309,6 @@ async function handleExport() {
       row.amount,
       row.balanceAfter || '',
       row.description || '',
-      row.refId || '',
-      row.refType || '',
       formatDateTime(row.createdAt)
     ])
 
@@ -341,22 +329,6 @@ async function handleExport() {
     }
   } finally {
     exporting.value = false
-  }
-}
-
-function handleRefClick(row) {
-  // 根据 refType 跳转到对应详情页
-  if (!row.refType || !row.refId) {
-    ElMessage.info('该记录无关联详情')
-    return
-  }
-
-  // 可根据实际业务扩展跳转逻辑
-  if (row.refType === 'achievement') {
-    ElMessage.info(`跳转至成果详情：ID=${row.refId}（功能待实现）`)
-    // router.push(`/audit/${row.refId}`)
-  } else {
-    ElMessage.info(`关联类型：${row.refType}，ID：${row.refId}`)
   }
 }
 

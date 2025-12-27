@@ -136,6 +136,8 @@ public class DeviceController {
             data.put("booking", result.getBooking());
             data.put("minutes", result.getMinutes());
             data.put("cost", result.getCost());
+            data.put("heldCost", result.getHeldCost());
+            data.put("refund", result.getRefund());
             return ResponseEntity.ok(ApiResponse.ok("结算成功", data));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));

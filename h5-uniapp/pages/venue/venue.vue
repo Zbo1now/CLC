@@ -163,6 +163,7 @@
             <text class="line">🏷️ 类型：{{ myVenue?.venueType || '—' }}</text>
             <text class="line">🗓️ 时间：{{ fmtDT(myBooking.startTime) }} – {{ fmtDT(myBooking.endTime) }}</text>
             <text class="line">💳 预扣：{{ myBooking.heldCost || 0 }} 币</text>
+            <text v-if="countdownVisible" class="line">{{ countdownText }}</text>
 
             <view v-if="showConfirm" class="confirm-box">
               <view class="confirm-hint">* 请在开始后 10 分钟内确认使用</view>
@@ -172,7 +173,15 @@
               </button>
             </view>
 
-            <view class="hint">* 未在 10 分钟内确认将自动取消，预扣币不退回</view>
+            <view v-if="canCancelBooking" class="actions">
+              <button class="ghost-btn" @tap="cancelBooking">
+                <text class="btn-text">取消预约</text>
+              </button>
+            </view>
+
+            <view class="hint">
+              * 预约开始前可取消并全额退款；开始后 10 分钟内未确认将自动取消（不退款）；到结束时间将自动结束，禁止超时占用。
+            </view>
           </view>
         </view>
       </view>
@@ -182,7 +191,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { onShow, onHide } from '@dcloudio/uni-app';
 import { baseUrl } from '../../common/config.js';
 
@@ -219,6 +228,8 @@ const myBooking = ref(null);
 const myVenue = ref(null);
 
 const timer = ref(null);
+const clockTimer = ref(null);
+const nowTs = ref(Date.now());
 
 const getSessionId = () => {
   let sessionId = '';
@@ -450,6 +461,41 @@ const mineBadgeClass = computed(() => {
   return 'badge-maint';
 });
 
+const countdownVisible = computed(() => {
+  if (!myBooking.value) return false;
+  const st = String(myBooking.value.status || '').toUpperCase();
+  return st === 'BOOKED' || st === 'IN_USE';
+});
+
+const countdownKind = computed(() => {
+  if (!myBooking.value) return '';
+  const st = String(myBooking.value.status || '').toUpperCase();
+  const start = parseDT(myBooking.value.startTime)?.getTime();
+  if (!start) return st === 'IN_USE' ? 'END' : 'START';
+  if (st === 'BOOKED' && nowTs.value < start) return 'START';
+  return 'END';
+});
+
+const countdownSeconds = computed(() => {
+  if (!myBooking.value) return 0;
+  const target = countdownKind.value === 'START'
+    ? parseDT(myBooking.value.startTime)?.getTime()
+    : parseDT(myBooking.value.endTime)?.getTime();
+  if (!target) return 0;
+  const diff = Math.floor((target - nowTs.value) / 1000);
+  return Math.max(0, diff);
+});
+
+const countdownText = computed(() => {
+  if (!countdownVisible.value) return '';
+  const s = countdownSeconds.value;
+  const hh = String(Math.floor(s / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  const prefix = countdownKind.value === 'START' ? '距离开始' : '距离结束';
+  return `${prefix} ${hh}:${mm}:${ss}`;
+});
+
 const showConfirm = computed(() => {
   if (!myBooking.value) return false;
   const st = String(myBooking.value.status || '').toUpperCase();
@@ -459,6 +505,39 @@ const showConfirm = computed(() => {
   if (!start) return false;
   return now >= start && now <= start + 10 * 60 * 1000;
 });
+
+const canCancelBooking = computed(() => {
+  if (!myBooking.value) return false;
+  const st = String(myBooking.value.status || '').toUpperCase();
+  if (st !== 'BOOKED') return false;
+  const now = Date.now();
+  const start = parseDT(myBooking.value.startTime)?.getTime();
+  if (!start) return false;
+  return now < start;
+});
+
+const autoRefreshedAtEnd = ref(false);
+watch(
+  () => [myBooking.value?.status, countdownKind.value, countdownSeconds.value],
+  async () => {
+    if (!myBooking.value) return;
+    const st = String(myBooking.value.status || '').toUpperCase();
+    if (st !== 'IN_USE') {
+      autoRefreshedAtEnd.value = false;
+      return;
+    }
+    if (countdownKind.value !== 'END') return;
+    if (countdownSeconds.value > 0) {
+      autoRefreshedAtEnd.value = false;
+      return;
+    }
+    if (autoRefreshedAtEnd.value) return;
+    autoRefreshedAtEnd.value = true;
+    // 到点后主动刷新一次，让状态尽快变为 COMPLETED（后端定时任务会强制结束）
+    await refreshMine();
+    await fetchVenues();
+  }
+);
 
 const confirmUse = async () => {
   if (!myBooking.value) return;
@@ -495,6 +574,49 @@ const confirmUse = async () => {
   });
 };
 
+const cancelBooking = async () => {
+  if (!myBooking.value) return;
+  const sessionId = getSessionId();
+  uni.showModal({
+    title: '提示',
+    content: '确认取消该预约？开始前取消可全额退款。',
+    success: async (r) => {
+      if (!r.confirm) return;
+      uni.showLoading({ title: '取消中...' });
+      await new Promise((resolve) => {
+        uni.request({
+          url: `${baseUrl}/api/venues/bookings/${myBooking.value.id}/cancel`,
+          method: 'POST',
+          header: { 'X-Session-Id': sessionId },
+          withCredentials: true,
+          success: async (res) => {
+            uni.hideLoading();
+            if (res.statusCode === 401) {
+              handle401();
+              resolve();
+              return;
+            }
+            if (res.statusCode === 200 && res.data && res.data.success) {
+              const data = res.data.data || {};
+              const refund = Number(data.refund || 0);
+              uni.showToast({ title: refund > 0 ? `已取消，退款 ${refund} 币` : '已取消', icon: 'none' });
+              await refreshMine();
+              resolve();
+              return;
+            }
+            uni.showToast({ title: (res.data && res.data.message) || '取消失败', icon: 'none' });
+            resolve();
+          },
+          fail: () => {
+            uni.hideLoading();
+            uni.showToast({ title: '网络错误', icon: 'none' });
+            resolve();
+          }
+        });
+      });
+    }
+  });
+};
 const submitBooking = async () => {
   if (!canSubmit.value) return;
   if (!Number.isInteger(hours.value)) {
@@ -607,12 +729,21 @@ onShow(async () => {
       fetchVenues();
     }
   }, 8000);
+
+  if (clockTimer.value) clearInterval(clockTimer.value);
+  clockTimer.value = setInterval(() => {
+    nowTs.value = Date.now();
+  }, 1000);
 });
 
 onHide(() => {
   if (timer.value) {
     clearInterval(timer.value);
     timer.value = null;
+  }
+  if (clockTimer.value) {
+    clearInterval(clockTimer.value);
+    clockTimer.value = null;
   }
 });
 

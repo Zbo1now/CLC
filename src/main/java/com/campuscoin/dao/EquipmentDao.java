@@ -9,17 +9,28 @@ import java.util.Map;
 @Mapper
 public interface EquipmentDao {
 
-    @Select("SELECT id, equipment_name AS equipmentName, equipment_type AS equipmentType, rate_per_day AS ratePerDay, status, created_at AS createdAt " +
+    @Select("SELECT id, equipment_name AS equipmentName, model, equipment_type AS equipmentType, rate_per_day AS ratePerDay, " +
+            "quantity, available_quantity AS availableQuantity, status, created_at AS createdAt " +
             "FROM equipments ORDER BY id ASC")
     List<Equipment> listAll();
 
-    @Select("SELECT id, equipment_name AS equipmentName, equipment_type AS equipmentType, rate_per_day AS ratePerDay, status, created_at AS createdAt " +
+    @Select("SELECT id, equipment_name AS equipmentName, model, equipment_type AS equipmentType, rate_per_day AS ratePerDay, " +
+            "quantity, available_quantity AS availableQuantity, status, created_at AS createdAt " +
             "FROM equipments WHERE id = #{id}")
     Equipment findById(@Param("id") int id);
 
-    @Select("SELECT id, equipment_name AS equipmentName, equipment_type AS equipmentType, rate_per_day AS ratePerDay, status, created_at AS createdAt " +
+    @Select("SELECT id, equipment_name AS equipmentName, model, equipment_type AS equipmentType, rate_per_day AS ratePerDay, " +
+            "quantity, available_quantity AS availableQuantity, status, created_at AS createdAt " +
             "FROM equipments WHERE id = #{id} FOR UPDATE")
     Equipment findByIdForUpdate(@Param("id") int id);
+
+    /**
+     * 可用库存增量更新（用于借出/归还）
+     * 注意：available_quantity 仅表示“当前未借出数量”，不代表未来日期占用。
+     */
+    @Update("UPDATE equipments SET available_quantity = available_quantity + #{delta} " +
+            "WHERE id = #{id} AND available_quantity + #{delta} >= 0")
+    int updateAvailableQuantityDelta(@Param("id") int id, @Param("delta") int delta);
 
     // ========== 资源管理新增方法 ==========
 

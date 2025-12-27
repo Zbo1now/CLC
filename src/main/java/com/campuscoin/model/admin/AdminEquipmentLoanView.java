@@ -1,12 +1,17 @@
-package com.campuscoin.model;
+package com.campuscoin.model.admin;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
 
-public class EquipmentLoan {
+/**
+ * 后台管理 - 器材借用视图（带团队/器材名称）
+ */
+public class AdminEquipmentLoanView {
     private int id;
     private int teamId;
+    private String teamName;
     private int equipmentId;
+    private String equipmentName;
     private int quantity;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -38,12 +43,28 @@ public class EquipmentLoan {
         this.teamId = teamId;
     }
 
+    public String getTeamName() {
+        return teamName;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+
     public int getEquipmentId() {
         return equipmentId;
     }
 
     public void setEquipmentId(int equipmentId) {
         this.equipmentId = equipmentId;
+    }
+
+    public String getEquipmentName() {
+        return equipmentName;
+    }
+
+    public void setEquipmentName(String equipmentName) {
+        this.equipmentName = equipmentName;
     }
 
     public int getQuantity() {
@@ -158,3 +179,5 @@ public class EquipmentLoan {
         this.updatedAt = updatedAt;
     }
 }
+
+

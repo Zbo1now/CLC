@@ -105,8 +105,12 @@ public class AdminTeamController {
                 return ApiResponse.fail("新密码长度至少6位");
             }
 
-            // 从 session 中获取管理员 ID（简化处理，实际需要从 AdminSession 中获取）
-            Integer adminId = 1; // TODO: 从 session 获取真实管理员 ID
+            // 从拦截器注入的 request 属性中获取管理员信息
+            Object adminIdAttr = request.getAttribute("adminId");
+            Integer adminId = adminIdAttr instanceof Integer ? (Integer) adminIdAttr : null;
+            if (adminId == null) {
+                return ApiResponse.fail("未获取到管理员身份信息，请重新登录");
+            }
             String ipAddress = request.getRemoteAddr();
 
             logger.info("API: 重置团队密码 - teamId={}, adminId={}, reason={}", id, adminId, reason);
@@ -142,8 +146,12 @@ public class AdminTeamController {
                 return ApiResponse.fail("调整金额不能为0");
             }
 
-            // 从 session 中获取管理员 ID
-            Integer adminId = 1; // TODO: 从 session 获取真实管理员 ID
+            // 从拦截器注入的 request 属性中获取管理员信息
+            Object adminIdAttr = request.getAttribute("adminId");
+            Integer adminId = adminIdAttr instanceof Integer ? (Integer) adminIdAttr : null;
+            if (adminId == null) {
+                return ApiResponse.fail("未获取到管理员身份信息，请重新登录");
+            }
             String ipAddress = request.getRemoteAddr();
 
             logger.info("API: 手动调整虚拟币 - teamId={}, amount={}, adminId={}, reason={}", id, amount, adminId, reason);

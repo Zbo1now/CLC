@@ -90,7 +90,7 @@ public class AdminResourceController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             boolean success = resourceService.createResource(type, params, adminUsername);
             if (success) {
                 return ApiResponse.ok("创建成功", null);
@@ -114,7 +114,7 @@ public class AdminResourceController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             boolean success = resourceService.updateResource(type, id, params, adminUsername);
             if (success) {
                 return ApiResponse.ok("更新成功", null);
@@ -137,7 +137,7 @@ public class AdminResourceController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             boolean success = resourceService.deleteResource(type, id, adminUsername);
             if (success) {
                 return ApiResponse.ok("删除成功", null);
@@ -162,7 +162,7 @@ public class AdminResourceController {
     ) {
         try {
             String status = params.get("status");
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             boolean success = resourceService.updateResourceStatus(type, id, status, adminUsername);
             if (success) {
                 return ApiResponse.ok("状态更新成功", null);

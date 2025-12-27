@@ -89,6 +89,12 @@
               <text class="range-value">{{ selectedEquipment.equipmentName }}</text>
             </view>
             <view class="range-line">
+              <text class="range-label">数量</text>
+              <picker mode="selector" :range="quantityOptions" :value="quantityIndex" @change="onQtyChange">
+                <view class="range-value">{{ borrowQuantity }} 件</view>
+              </picker>
+            </view>
+            <view class="range-line">
               <text class="range-label">日期</text>
               <text class="range-value">{{ startDate || '—' }} ～ {{ endDate || '—' }}</text>
             </view>
@@ -108,7 +114,7 @@
             </button>
           </view>
 
-          <view class="hint">* 灰色日期为已被占用（申请中/已借出），提交后将预扣虚拟币</view>
+          <view class="hint">* 灰色日期表示该日库存已满（申请中/已审核/已借出），提交后将预扣虚拟币</view>
         </view>
       </view>
 
@@ -138,14 +144,41 @@
               </view>
             </view>
 
-            <text class="lease-line">🏷️ 类型：{{ myEquipment?.equipmentType || '—' }}</text>
-            <text class="lease-line">🗓️ 日期：{{ myLoan.startDate }} ～ {{ myLoan.endDate }}</text>
-            <text class="lease-line">💳 预扣：{{ myLoan.heldCost || 0 }} 币</text>
-            <text v-if="myLoan.borrowedAt" class="lease-line">▶️ 借出：{{ fmtTime(myLoan.borrowedAt) }}</text>
-            <text v-if="myLoan.returnedAt" class="lease-line">⏹️ 归还：{{ fmtTime(myLoan.returnedAt) }}</text>
+            <view class="info-list">
+              <view class="info-item">
+                <text class="info-label">类型</text>
+                <text class="info-value">{{ myEquipment?.equipmentType || '—' }}</text>
+              </view>
+              <view class="info-item">
+                <text class="info-label">日期</text>
+                <text class="info-value">{{ myLoan.startDate }} ～ {{ myLoan.endDate }}</text>
+              </view>
+              <view class="info-item">
+                <text class="info-label">数量</text>
+                <text class="info-value">{{ myLoan.quantity || 1 }} 件</text>
+              </view>
+              <view class="info-item">
+                <text class="info-label">预扣</text>
+                <text class="info-value">{{ myLoan.heldCost || 0 }} 币</text>
+              </view>
+              <view v-if="myLoan.borrowedAt" class="info-item">
+                <text class="info-label">借出</text>
+                <text class="info-value">{{ fmtTime(myLoan.borrowedAt) }}</text>
+              </view>
+              <view v-if="myLoan.returnedAt" class="info-item">
+                <text class="info-label">归还</text>
+                <text class="info-value">{{ fmtTime(myLoan.returnedAt) }}</text>
+              </view>
+            </view>
+
+            <view class="actions" v-if="canCancelMyLoan">
+              <button class="ghost-btn" @tap="cancelMyLoan">
+                <text class="btn-text">取消申请</text>
+              </button>
+            </view>
 
             <view class="hint">
-              * 申请提交后等待管理员线下发放器材，并在后台标记“已借出/已归还”。
+              * 申请提交后等待管理员线下发放器材
             </view>
           </view>
         </view>
@@ -168,10 +201,24 @@ const startDate = ref('');
 const endDate = ref('');
 
 const monthCursor = ref(new Date());
-const occupiedSet = ref(new Set());
+// dateStr -> 已占用数量（按天汇总）
+const occupiedMap = ref(new Map());
 
 const myLoan = ref(null);
 const myEquipment = ref(null);
+
+const borrowQuantity = ref(1);
+const quantityIndex = ref(0);
+const quantityOptions = computed(() => {
+  const total = Math.max(1, Number(selectedEquipment.value?.quantity || 1));
+  return Array.from({ length: total }, (_, i) => String(i + 1));
+});
+
+const onQtyChange = (e) => {
+  const idx = Number(e?.detail?.value || 0);
+  quantityIndex.value = idx;
+  borrowQuantity.value = Math.max(1, idx + 1);
+};
 
 const getSessionId = () => {
   let sessionId = '';
@@ -208,18 +255,21 @@ const monthLabel = computed(() => {
 const costText = computed(() => {
   if (!selectedEquipment.value || !startDate.value || !endDate.value) return '—';
   const days = daysInclusive(startDate.value, endDate.value);
-  const cost = Math.max(0, Number(selectedEquipment.value.ratePerDay || 0)) * days;
-  return `${cost} 币（${days} 天）`;
+  const qty = Math.max(1, Number(borrowQuantity.value || 1));
+  const cost = Math.max(0, Number(selectedEquipment.value.ratePerDay || 0)) * days * qty;
+  return `${cost} 币（${qty} 件，${days} 天）`;
 });
 
 const canSubmit = computed(() => {
   if (!selectedEquipment.value) return false;
   if (!startDate.value || !endDate.value) return false;
   if (daysInclusive(startDate.value, endDate.value) <= 0) return false;
-  // 简单校验：选中范围内不包含占用日
-  const set = occupiedSet.value;
+  // 校验：选中范围内每天占用+申请数量 <= 总库存
+  const total = Math.max(1, Number(selectedEquipment.value.quantity || 1));
+  const qty = Math.max(1, Number(borrowQuantity.value || 1));
+  const map = occupiedMap.value;
   const days = listDays(startDate.value, endDate.value);
-  return days.every(d => !set.has(d));
+  return days.every(d => (Number(map.get(d) || 0) + qty) <= total);
 });
 
 const statusText = (e) => {
@@ -242,16 +292,22 @@ const fmtTime = (v) => {
 const loanStatusText = (l) => {
   const st = String(l.status || '').toUpperCase();
   if (st === 'PENDING') return '申请中';
+  if (st === 'APPROVED') return '已审核';
   if (st === 'BORROWED') return '已借出';
   if (st === 'RETURNED') return '已归还';
+  if (st === 'CANCELLED') return '已取消';
+  if (st === 'REJECTED') return '已拒绝';
+  if (st === 'EXPIRED') return '已过期';
   return st || '—';
 };
 
 const loanBadgeClass = (l) => {
   const st = String(l.status || '').toUpperCase();
   if (st === 'BORROWED') return 'badge-free';
+  if (st === 'APPROVED') return 'badge-free';
   if (st === 'PENDING') return 'badge-rented';
   if (st === 'RETURNED') return 'badge-expired';
+  if (st === 'CANCELLED' || st === 'REJECTED' || st === 'EXPIRED') return 'badge-expired';
   return 'badge-rented';
 };
 
@@ -324,6 +380,8 @@ const refreshMine = async () => {
 const selectEquipment = async (e) => {
   selectedEquipment.value = e;
   resetRange();
+  borrowQuantity.value = 1;
+  quantityIndex.value = 0;
   await fetchOccupiedForMonth();
 };
 
@@ -334,7 +392,7 @@ const fetchOccupiedForMonth = async () => {
   const end = monthEndStr(monthCursor.value);
 
   const sessionId = getSessionId();
-  occupiedSet.value = new Set();
+  occupiedMap.value = new Map();
 
   await new Promise((resolve) => {
     uni.request({
@@ -350,13 +408,14 @@ const fetchOccupiedForMonth = async () => {
         }
         if (res.statusCode === 200 && res.data && res.data.success) {
           const list = Array.isArray(res.data.data) ? res.data.data : [];
-          const set = new Set();
+          const map = new Map();
           list.forEach((x) => {
             const s = x.startDate;
             const e = x.endDate;
-            listDays(s, e).forEach(d => set.add(d));
+            const q = Math.max(1, Number(x.quantity || 1));
+            listDays(s, e).forEach(d => map.set(d, Number(map.get(d) || 0) + q));
           });
-          occupiedSet.value = set;
+          occupiedMap.value = map;
         }
         resolve();
       },
@@ -384,7 +443,8 @@ const calendarCells = computed(() => buildCalendarCells(monthCursor.value));
 const cellClass = (cell) => {
   if (!cell || cell.day <= 0) return 'empty-cell';
   const dateStr = cell.dateStr;
-  const busy = occupiedSet.value.has(dateStr);
+  const total = Math.max(1, Number(selectedEquipment.value?.quantity || 1));
+  const busy = Number(occupiedMap.value.get(dateStr) || 0) >= total;
   const inSel = isInRange(dateStr, startDate.value, endDate.value);
 
   if (busy) return 'busy';
@@ -395,7 +455,8 @@ const cellClass = (cell) => {
 const tapDay = (cell) => {
   if (!cell || cell.day <= 0) return;
   const dateStr = cell.dateStr;
-  if (occupiedSet.value.has(dateStr)) return;
+  const total = Math.max(1, Number(selectedEquipment.value?.quantity || 1));
+  if (Number(occupiedMap.value.get(dateStr) || 0) >= total) return;
 
   if (!startDate.value || (startDate.value && endDate.value)) {
     startDate.value = dateStr;
@@ -422,12 +483,13 @@ const submitLoan = async () => {
 
   const payload = {
     startDate: startDate.value,
-    endDate: endDate.value
+    endDate: endDate.value,
+    quantity: Math.max(1, Number(borrowQuantity.value || 1))
   };
 
   uni.showModal({
     title: '确认借用',
-    content: `器材：${selectedEquipment.value.equipmentName}\n日期：${startDate.value} ~ ${endDate.value}\n预扣：${costText.value}`,
+    content: `器材：${selectedEquipment.value.equipmentName}\n数量：${payload.quantity} 件\n日期：${startDate.value} ~ ${endDate.value}\n预扣：${costText.value}`,
     confirmText: '提交',
     cancelText: '取消',
     success: async (res) => {
@@ -470,6 +532,53 @@ const submitLoan = async () => {
             resolve();
           }
         });
+      });
+    }
+  });
+};
+
+const canCancelMyLoan = computed(() => {
+  if (!myLoan.value) return false;
+  const st = String(myLoan.value.status || '').toUpperCase();
+  if (!(st === 'PENDING' || st === 'APPROVED')) return false;
+  const today = toYMD(new Date());
+  return String(myLoan.value.startDate || '') > today;
+});
+
+const cancelMyLoan = () => {
+  if (!myLoan.value) return;
+  const sessionId = getSessionId();
+  uni.showModal({
+    title: '取消申请',
+    content: '未到预约日期可取消并自动退款，确认取消？',
+    confirmText: '取消申请',
+    success: (r) => {
+      if (!r.confirm) return;
+      uni.showLoading({ title: '取消中...' });
+      uni.request({
+        url: `${baseUrl}/api/equipments/loans/${myLoan.value.id}/cancel`,
+        method: 'POST',
+        header: { 'X-Session-Id': sessionId },
+        withCredentials: true,
+        success: async (res) => {
+          uni.hideLoading();
+          if (res.statusCode === 401) {
+            handle401();
+            return;
+          }
+          if (res.statusCode === 200 && res.data && res.data.success) {
+            uni.showToast({ title: '已取消', icon: 'success' });
+            await refreshMine();
+            await fetchEquipments();
+          } else {
+            uni.showToast({ title: (res.data && res.data.message) || '取消失败', icon: 'none' });
+            await refreshMine();
+          }
+        },
+        fail: () => {
+          uni.hideLoading();
+          uni.showToast({ title: '网络异常', icon: 'none' });
+        }
       });
     }
   });
@@ -1062,6 +1171,37 @@ function listDays(s, e) {
   font-size: 26rpx;
   color: $text-light;
   margin-top: 10rpx;
+}
+
+.info-list {
+  margin-top: 10rpx;
+  padding: 16rpx 18rpx;
+  border-radius: $radius-lg;
+  background: rgba($bg-color, 0.8);
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 10rpx 0;
+}
+
+.info-label {
+  flex: 0 0 96rpx;
+  font-size: 24rpx;
+  color: $text-light;
+  font-weight: 800;
+}
+
+.info-value {
+  flex: 1;
+  text-align: right;
+  font-size: 24rpx;
+  color: $text-main;
+  font-weight: 800;
+  word-break: break-all;
 }
 
 .hint {

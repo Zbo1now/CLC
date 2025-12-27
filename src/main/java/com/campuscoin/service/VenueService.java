@@ -229,4 +229,84 @@ public class VenueService {
         }
         return cancelled;
     }
+
+    /**
+     * 到点强制结束（防止超时继续占用）：
+     * - BOOKED 到 end_time 仍未确认：标记 AUTO_CANCELLED（不退款）
+     * - IN_USE 超过 end_time：标记 COMPLETED
+     */
+    @Transactional
+    public Map<String, Integer> autoFinishDueBookings(int limit) {
+        int safeLimit = Math.max(1, Math.min(500, limit));
+        LocalDateTime now = LocalDateTime.now();
+
+        int autoCancelled = 0;
+        List<VenueBooking> bookedEnded = venueBookingDao.listBookedEndedBefore(now, safeLimit);
+        for (VenueBooking b : bookedEnded) {
+            int updated = venueBookingDao.markCancelled(b.getId(), "AUTO_CANCELLED");
+            if (updated > 0) {
+                autoCancelled++;
+                logger.info("到点强制结束(未确认自动取消): bookingId={}, teamId={}, venueId={}, start={}, end={}, heldCost={}（不退款）",
+                        b.getId(), b.getTeamId(), b.getVenueId(), b.getStartTime(), b.getEndTime(), b.getHeldCost());
+            }
+        }
+
+        int completed = 0;
+        List<VenueBooking> inUseEnded = venueBookingDao.listInUseEndedBefore(now, safeLimit);
+        for (VenueBooking b : inUseEnded) {
+            int updated = venueBookingDao.markCompleted(b.getId());
+            if (updated > 0) {
+                completed++;
+                logger.info("到点强制结束(使用中自动结束): bookingId={}, teamId={}, venueId={}, start={}, end={}",
+                        b.getId(), b.getTeamId(), b.getVenueId(), b.getStartTime(), b.getEndTime());
+            }
+        }
+
+        Map<String, Integer> out = new HashMap<>();
+        out.put("autoCancelled", autoCancelled);
+        out.put("completed", completed);
+        return out;
+    }
+
+    /**
+     * 用户取消预约：仅允许开始前取消，取消后全额退款。
+     */
+    @Transactional
+    public Map<String, Object> cancelBooking(int teamId, int bookingId) {
+        VenueBooking booking = venueBookingDao.findByIdForUpdate(bookingId);
+        if (booking == null) {
+            throw new IllegalArgumentException("预约不存在");
+        }
+        if (!Objects.equals(booking.getTeamId(), teamId)) {
+            throw new IllegalArgumentException("无权限操作该预约");
+        }
+        if (!"BOOKED".equalsIgnoreCase(booking.getStatus())) {
+            throw new IllegalArgumentException("当前状态不可取消");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (booking.getStartTime() != null && !now.isBefore(booking.getStartTime())) {
+            throw new IllegalArgumentException("已到开始时间，无法取消");
+        }
+
+        int updated = venueBookingDao.markUserCancelled(bookingId);
+        if (updated <= 0) {
+            throw new IllegalStateException("取消失败，请稍后重试");
+        }
+
+        int refund = Math.max(0, booking.getHeldCost() == null ? 0 : booking.getHeldCost());
+        if (refund > 0) {
+            teamDao.addBalance(teamId, refund);
+            Venue venue = venueDao.findById(booking.getVenueId());
+            String name = venue != null ? venue.getVenueName() : "场地";
+            String desc = String.format("场地短租取消退款：%s %s-%s", name,
+                    booking.getStartTime() != null ? booking.getStartTime().toLocalTime().toString() : "",
+                    booking.getEndTime() != null ? booking.getEndTime().toLocalTime().toString() : "");
+            transactionService.record(teamId, "VENUE_HOLD", refund, desc, bookingId, "venue_booking");
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("booking", venueBookingDao.findById(bookingId));
+        data.put("refund", refund);
+        return data;
+    }
 }

@@ -75,7 +75,7 @@ public class AdminParticipationController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
 
             boolean success = adminParticipationService.approve(id, adminUsername);
             if (success) {
@@ -99,7 +99,7 @@ public class AdminParticipationController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             String rejectReason = params.get("rejectReason");
 
             if (rejectReason == null || rejectReason.trim().isEmpty()) {
@@ -127,7 +127,7 @@ public class AdminParticipationController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             List<Integer> ids = params.get("ids");
 
             if (ids == null || ids.isEmpty()) {
@@ -157,7 +157,7 @@ public class AdminParticipationController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             String completionNotes = params != null ? params.get("completionNotes") : null;
 
             boolean success = adminParticipationService.markCompleted(id, completionNotes, adminUsername);
@@ -181,7 +181,7 @@ public class AdminParticipationController {
             HttpServletRequest request
     ) {
         try {
-            String adminUsername = (String) request.getAttribute("admin_username");
+            String adminUsername = (String) request.getAttribute("adminUsername");
             @SuppressWarnings("unchecked")
             List<Integer> ids = (List<Integer>) params.get("ids");
             String completionNotes = (String) params.get("completionNotes");

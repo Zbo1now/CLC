@@ -12,7 +12,7 @@ public interface DeviceDao {
 
     @Select("SELECT d.id, d.device_name AS deviceName, d.device_type AS deviceType, d.rate_per_hour AS ratePerHour, d.status, d.created_at AS createdAt, " +
             "CASE " +
-            "  WHEN d.status = 'MAINTENANCE' THEN 'MAINTENANCE' " +
+            "  WHEN d.status IN ('MAINTENANCE','BROKEN') THEN 'MAINTENANCE' " +
             "  WHEN EXISTS (SELECT 1 FROM device_bookings b WHERE b.device_id = d.id AND b.status = 'IN_USE') THEN 'IN_USE' " +
             "  ELSE 'IDLE' " +
             "END AS runtimeStatus " +
@@ -22,12 +22,12 @@ public interface DeviceDao {
     // 带指定时间段可用性（RESERVED/IN_USE 任一冲突即不可用）
     @Select("SELECT d.id, d.device_name AS deviceName, d.device_type AS deviceType, d.rate_per_hour AS ratePerHour, d.status, d.created_at AS createdAt, " +
             "CASE " +
-            "  WHEN d.status = 'MAINTENANCE' THEN 'MAINTENANCE' " +
+            "  WHEN d.status IN ('MAINTENANCE','BROKEN') THEN 'MAINTENANCE' " +
             "  WHEN EXISTS (SELECT 1 FROM device_bookings b WHERE b.device_id = d.id AND b.status = 'IN_USE') THEN 'IN_USE' " +
             "  ELSE 'IDLE' " +
             "END AS runtimeStatus, " +
             "CASE " +
-            "  WHEN d.status = 'MAINTENANCE' THEN 0 " +
+            "  WHEN d.status IN ('MAINTENANCE','BROKEN','IN_USE') THEN 0 " +
             "  WHEN EXISTS (" +
             "    SELECT 1 FROM device_bookings b2 " +
             "    WHERE b2.device_id = d.id AND b2.status IN ('RESERVED','IN_USE') " +

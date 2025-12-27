@@ -7,7 +7,10 @@ public class Transaction {
     private int teamId;
     private String txnType;
     private int amount;
+    private Integer balanceAfter;
     private String description;
+    private Integer refId;
+    private String refType;
     private Timestamp createdAt;
 
     public int getId() {
@@ -42,12 +45,36 @@ public class Transaction {
         this.amount = amount;
     }
 
+    public Integer getBalanceAfter() {
+        return balanceAfter;
+    }
+
+    public void setBalanceAfter(Integer balanceAfter) {
+        this.balanceAfter = balanceAfter;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Integer getRefId() {
+        return refId;
+    }
+
+    public void setRefId(Integer refId) {
+        this.refId = refId;
+    }
+
+    public String getRefType() {
+        return refType;
+    }
+
+    public void setRefType(String refType) {
+        this.refType = refType;
     }
 
     public Timestamp getCreatedAt() {

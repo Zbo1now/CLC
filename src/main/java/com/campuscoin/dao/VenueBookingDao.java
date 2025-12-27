@@ -56,10 +56,26 @@ public interface VenueBookingDao {
     @Update("UPDATE venue_bookings SET status = #{status}, cancelled_at = NOW() WHERE id = #{id} AND status = 'BOOKED'")
     int markCancelled(@Param("id") int id, @Param("status") String status);
 
+    @Update("UPDATE venue_bookings SET status = 'CANCELLED', cancelled_at = NOW() WHERE id = #{id} AND status = 'BOOKED'")
+    int markUserCancelled(@Param("id") int id);
+
+    @Update("UPDATE venue_bookings SET status = 'COMPLETED', finished_at = NOW() WHERE id = #{id} AND status = 'IN_USE'")
+    int markCompleted(@Param("id") int id);
+
     @Select("SELECT id, team_id AS teamId, venue_id AS venueId, start_time AS startTime, end_time AS endTime, status, held_cost AS heldCost, " +
             "confirmed_at AS confirmedAt, cancelled_at AS cancelledAt, finished_at AS finishedAt, created_at AS createdAt " +
             "FROM venue_bookings WHERE status = 'BOOKED' AND start_time <= #{deadline} ORDER BY start_time ASC LIMIT #{limit}")
     List<VenueBooking> listBookedBefore(@Param("deadline") LocalDateTime deadline, @Param("limit") int limit);
+
+    @Select("SELECT id, team_id AS teamId, venue_id AS venueId, start_time AS startTime, end_time AS endTime, status, held_cost AS heldCost, " +
+            "confirmed_at AS confirmedAt, cancelled_at AS cancelledAt, finished_at AS finishedAt, created_at AS createdAt " +
+            "FROM venue_bookings WHERE status = 'BOOKED' AND end_time <= #{now} ORDER BY end_time ASC LIMIT #{limit}")
+    List<VenueBooking> listBookedEndedBefore(@Param("now") LocalDateTime now, @Param("limit") int limit);
+
+    @Select("SELECT id, team_id AS teamId, venue_id AS venueId, start_time AS startTime, end_time AS endTime, status, held_cost AS heldCost, " +
+            "confirmed_at AS confirmedAt, cancelled_at AS cancelledAt, finished_at AS finishedAt, created_at AS createdAt " +
+            "FROM venue_bookings WHERE status = 'IN_USE' AND end_time <= #{now} ORDER BY end_time ASC LIMIT #{limit}")
+    List<VenueBooking> listInUseEndedBefore(@Param("now") LocalDateTime now, @Param("limit") int limit);
 
     @Select("SELECT status FROM venue_bookings " +
             "WHERE venue_id = #{venueId} AND status IN ('BOOKED','IN_USE') " +

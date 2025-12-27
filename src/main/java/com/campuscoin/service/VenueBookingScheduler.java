@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 @Component
 public class VenueBookingScheduler {
 
@@ -21,8 +23,13 @@ public class VenueBookingScheduler {
     public void autoCancel() {
         try {
             int cancelled = venueService.autoCancelExpiredBooked(200);
-            if (cancelled > 0) {
-                logger.info("场地预约自动取消任务: cancelled={}", cancelled);
+            Map<String, Integer> finish = venueService.autoFinishDueBookings(200);
+            int autoCancelledAtEnd = finish != null ? finish.getOrDefault("autoCancelled", 0) : 0;
+            int completed = finish != null ? finish.getOrDefault("completed", 0) : 0;
+
+            if (cancelled > 0 || autoCancelledAtEnd > 0 || completed > 0) {
+                logger.info("场地预约定时任务: autoCancelAfterStart10m={}, autoCancelAtEnd={}, autoCompleteAtEnd={}",
+                        cancelled, autoCancelledAtEnd, completed);
             }
         } catch (Exception e) {
             logger.error("场地预约自动取消任务异常", e);

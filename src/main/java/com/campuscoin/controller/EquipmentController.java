@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,12 +76,32 @@ public class EquipmentController {
         try {
             LocalDate s = parseDate(req != null ? req.getStartDate() : null);
             LocalDate e = parseDate(req != null ? req.getEndDate() : null);
-            Map<String, Object> data = equipmentService.createLoan(teamId, equipmentId, s, e);
+            int quantity = req != null && req.getQuantity() != null ? req.getQuantity() : 1;
+            Map<String, Object> data = equipmentService.createLoan(teamId, equipmentId, quantity, s, e);
             return ResponseEntity.ok(ApiResponse.ok("申请成功", data));
         } catch (IllegalArgumentException | IllegalStateException ex) {
             return ResponseEntity.badRequest().body(ApiResponse.fail(ex.getMessage()));
         } catch (Exception ex) {
             logger.error("创建器材借用申请异常: equipmentId={}", equipmentId, ex);
+            return ResponseEntity.status(500).body(ApiResponse.fail("操作失败，请稍后重试"));
+        }
+    }
+
+    @PostMapping("/loans/{loanId}/cancel")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cancel(@PathVariable int loanId,
+                                                                   HttpServletRequest request,
+                                                                   HttpSession session) {
+        Integer teamId = SessionHelper.resolveTeamId(request, session);
+        if (teamId == null) {
+            return ResponseEntity.status(401).body(ApiResponse.fail("请先登录"));
+        }
+        try {
+            Map<String, Object> data = equipmentService.cancelLoan(teamId, loanId);
+            return ResponseEntity.ok(ApiResponse.ok("已取消", data));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.fail(ex.getMessage()));
+        } catch (Exception ex) {
+            logger.error("取消器材借用申请异常: loanId={}", loanId, ex);
             return ResponseEntity.status(500).body(ApiResponse.fail("操作失败，请稍后重试"));
         }
     }
@@ -115,6 +134,7 @@ public class EquipmentController {
     public static class CreateLoanRequest {
         private String startDate;
         private String endDate;
+        private Integer quantity;
 
         public String getStartDate() {
             return startDate;
@@ -130,6 +150,14 @@ public class EquipmentController {
 
         public void setEndDate(String endDate) {
             this.endDate = endDate;
+        }
+
+        public Integer getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
         }
     }
 }

@@ -59,6 +59,12 @@ public interface TeamDao {
     @Update("UPDATE teams SET password_hash = #{passwordHash} WHERE id = #{teamId}")
     int updatePasswordHash(@Param("teamId") int teamId, @Param("passwordHash") String passwordHash);
 
+    /**
+     * 查询当前余额（用于流水 balance_after 快照写入）
+     */
+    @Select("SELECT balance FROM teams WHERE id = #{teamId}")
+    Integer getBalance(@Param("teamId") int teamId);
+
     static String describe(Team team) {
         if (team == null) {
             return "null";
