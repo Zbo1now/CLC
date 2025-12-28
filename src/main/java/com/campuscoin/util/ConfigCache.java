@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +25,17 @@ public class ConfigCache {
 
     // 内存缓存：key -> value
     private final Map<String, String> cache = new ConcurrentHashMap<>();
+
+    private void ensureLoaded() {
+        // 懒加载：首次访问时初始化缓存
+        if (cache.isEmpty()) {
+            synchronized (this) {
+                if (cache.isEmpty()) {
+                    refresh();
+                }
+            }
+        }
+    }
 
     /**
      * 应用启动时初始化缓存
@@ -56,14 +66,7 @@ public class ConfigCache {
      * 获取配置值（字符串）
      */
     public String get(String key) {
-        // 懒加载：首次访问时初始化缓存
-        if (cache.isEmpty()) {
-            synchronized (this) {
-                if (cache.isEmpty()) {
-                    refresh();
-                }
-            }
-        }
+        ensureLoaded();
         return cache.get(key);
     }
 
@@ -79,6 +82,7 @@ public class ConfigCache {
      * 获取配置值（整数）
      */
     public Integer getInt(String key) {
+        ensureLoaded();
         String value = cache.get(key);
         if (value == null) {
             return null;
@@ -103,6 +107,7 @@ public class ConfigCache {
      * 获取配置值（布尔）
      */
     public Boolean getBoolean(String key) {
+        ensureLoaded();
         String value = cache.get(key);
         if (value == null) {
             return null;
@@ -122,6 +127,7 @@ public class ConfigCache {
      * 检查配置项是否存在
      */
     public boolean exists(String key) {
+        ensureLoaded();
         return cache.containsKey(key);
     }
 
@@ -129,6 +135,7 @@ public class ConfigCache {
      * 获取所有缓存的配置项
      */
     public Map<String, String> getAll() {
+        ensureLoaded();
         return new ConcurrentHashMap<>(cache);
     }
 

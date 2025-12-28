@@ -38,3 +38,26 @@ export function resetTeamPassword(id, data) {
 export function adjustTeamBalance(id, data) {
   return http.post(`/admin/teams/${id}/adjust-balance`, data)
 }
+
+/**
+ * 启用/禁用团队账号
+ * data: { enabled: true/false, reason?: string }
+ */
+export function setTeamEnabled(id, data) {
+  return http.post(`/admin/teams/${id}/set-enabled`, data)
+}
+
+/**
+ * 获取团队成员列表
+ */
+export function getTeamMembers(id) {
+  return http.get(`/admin/teams/${id}/members`)
+}
+
+/**
+ * 新增团队成员
+ * data: { memberName: string, role?: string, phone?: string }
+ */
+export function addTeamMember(id, data) {
+  return http.post(`/admin/teams/${id}/members`, data)
+}

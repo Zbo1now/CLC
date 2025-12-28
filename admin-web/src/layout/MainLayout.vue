@@ -3,7 +3,8 @@
     <el-aside width="220px" class="aside">
       <div class="logo">
         <el-icon class="logo-icon"><Monitor /></el-icon>
-        <span v-if="!isCollapse">众创空间管理系统</span>
+        <!-- 品牌：创联空间管理系统 -->
+        <span v-if="!isCollapse">创联空间管理系统</span>
       </div>
       <el-menu
         :default-active="activeMenu"

@@ -1,5 +1,7 @@
 package com.campuscoin.interceptor;
 
+import com.campuscoin.dao.TeamDao;
+import com.campuscoin.model.Team;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.util.SessionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +20,11 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginInterceptor.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TeamDao teamDao;
+
+    public LoginInterceptor(TeamDao teamDao) {
+        this.teamDao = teamDao;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -55,6 +62,35 @@ public class LoginInterceptor implements HandlerInterceptor {
             uri, request.getMethod(), sessionId, isLoggedIn);
 
         if (isLoggedIn) {
+            // 账号被禁用时，已登录会话也应被拦截
+            Integer teamId = null;
+            Object teamIdAttr = request.getAttribute("teamId");
+            if (teamIdAttr instanceof Integer) {
+                teamId = (Integer) teamIdAttr;
+            } else {
+                HttpSession s = request.getSession(false);
+                if (s != null && s.getAttribute("teamId") instanceof Integer) {
+                    teamId = (Integer) s.getAttribute("teamId");
+                }
+            }
+
+            if (teamId != null) {
+                try {
+                    Team team = teamDao.findById(teamId);
+                    if (team != null && team.getEnabled() != null && !team.getEnabled()) {
+                        logger.warn("拦截器拒绝: 账号已禁用 teamId={}, uri={}", teamId, uri);
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json;charset=UTF-8");
+                        PrintWriter out = response.getWriter();
+                        out.print(objectMapper.writeValueAsString(ApiResponse.fail("账号已被禁用")));
+                        out.flush();
+                        return false;
+                    }
+                } catch (Exception ex) {
+                    logger.warn("拦截器检查 enabled 失败: teamId={}, uri={}", teamId, uri, ex);
+                }
+            }
+
             return true;
         }
 

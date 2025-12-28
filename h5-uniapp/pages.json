@@ -3,7 +3,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "CampusCoin",
+        "navigationBarTitleText": "创联空间",
         "navigationStyle": "custom"
       }
     },
@@ -121,7 +121,7 @@
   },
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "CampusCoin",
+    "navigationBarTitleText": "创联空间",
     "backgroundColor": "#f6f7fb"
   }
 }

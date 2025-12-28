@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 /**
@@ -134,9 +133,6 @@ public class AdminParticipationService {
             logger.warn("活动已取消，无法审核通过: activityId={}", activity.getId());
             return false;
         }
-
-
-        Timestamp now = new Timestamp(System.currentTimeMillis());
 
         // 确保inUsername不为null
         String reviewer = (adminUsername != null && !adminUsername.isEmpty()) ? adminUsername : "admin";

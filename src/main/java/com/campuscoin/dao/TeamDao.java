@@ -18,6 +18,11 @@ public interface TeamDao {
     @Select("SELECT id, team_name AS teamName, password_hash AS passwordHash, contact_name AS contactName, contact_phone AS contactPhone, face_image AS faceImage, balance, current_streak AS currentStreak, last_checkin_date AS lastCheckinDate, created_at AS createdAt FROM teams WHERE team_name = #{teamName}")
     Team findByNameInternal(@Param("teamName") String teamName);
 
+    @Select("SELECT id, team_name AS teamName, password_hash AS passwordHash, contact_name AS contactName, contact_phone AS contactPhone, " +
+            "face_image AS faceImage, enabled, balance, current_streak AS currentStreak, last_checkin_date AS lastCheckinDate, created_at AS createdAt " +
+            "FROM teams WHERE id = #{teamId}")
+    Team findById(@Param("teamId") int teamId);
+
     default Team findByName(String teamName) {
         Team team = findByNameInternal(teamName);
         if (logger.isInfoEnabled()) {
@@ -58,6 +63,12 @@ public interface TeamDao {
      */
     @Update("UPDATE teams SET password_hash = #{passwordHash} WHERE id = #{teamId}")
     int updatePasswordHash(@Param("teamId") int teamId, @Param("passwordHash") String passwordHash);
+
+    /**
+     * 启用/禁用团队账号（后台管理）
+     */
+    @Update("UPDATE teams SET enabled = #{enabled} WHERE id = #{teamId}")
+    int updateEnabled(@Param("teamId") int teamId, @Param("enabled") boolean enabled);
 
     /**
      * 查询当前余额（用于流水 balance_after 快照写入）

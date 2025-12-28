@@ -13,6 +13,7 @@ public class AdminTeamDetail {
     private String contactName;
     private String contactPhone;
     private String faceImage;
+    private Boolean enabled; // 账号状态
     private Integer balance;
     private Integer currentStreak;
     private Timestamp createdAt;
@@ -74,6 +75,14 @@ public class AdminTeamDetail {
 
     public void setFaceImage(String faceImage) {
         this.faceImage = faceImage;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 
     public Integer getBalance() {

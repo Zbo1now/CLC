@@ -30,6 +30,7 @@ public interface AdminTeamDao {
             "  t.team_name AS teamName, ",
             "  t.contact_name AS contactName, ",
             "  t.contact_phone AS contactPhone, ",
+            "  t.enabled AS enabled, ",
             "  t.balance, ",
             "  t.created_at AS createdAt, ",
             "  IFNULL(wc.cnt, 0) AS weeklyCheckins, ",
@@ -116,7 +117,7 @@ public interface AdminTeamDao {
      * 查询团队详情（基础信息）
      */
     @Select("SELECT id, team_name AS teamName, contact_name AS contactName, contact_phone AS contactPhone, " +
-            "face_image AS faceImage, balance, current_streak AS currentStreak, created_at AS createdAt " +
+            "face_image AS faceImage, enabled, balance, current_streak AS currentStreak, created_at AS createdAt " +
             "FROM teams WHERE id = #{teamId}")
     AdminTeamDetail getTeamBasicInfo(@Param("teamId") Integer teamId);
 

@@ -3,6 +3,7 @@ package com.campuscoin.controller;
 import com.campuscoin.model.Team;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.service.AuthService;
+import com.campuscoin.service.CaptchaService;
 import com.campuscoin.util.SessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +28,22 @@ public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     private final AuthService authService;
+    private final CaptchaService captchaService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, CaptchaService captchaService) {
         this.authService = authService;
+        this.captchaService = captchaService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<Map<String, Object>>> register(@RequestBody RegisterRequest req) {
         logger.info("尝试注册团队: {}", req.getTeamName());
         try {
+            boolean captchaOk = captchaService.verify(req.getCaptchaId(), req.getCaptchaCode());
+            if (!captchaOk) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("验证码错误或已过期"));
+            }
+
             Team team = authService.register(req.getTeamName(), req.getPassword(), req.getContactName(), req.getContactPhone());
             Map<String, Object> data = new HashMap<>();
             data.put("teamName", team.getTeamName());
@@ -57,6 +65,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> login(@RequestBody LoginRequest req, HttpSession session) {
         logger.info("尝试登录团队: {}", req.getTeamName());
         try {
+            boolean captchaOk = captchaService.verify(req.getCaptchaId(), req.getCaptchaCode());
+            if (!captchaOk) {
+                return ResponseEntity.badRequest().body(ApiResponse.fail("验证码错误或已过期"));
+            }
+
             Team team = authService.login(req.getTeamName(), req.getPassword());
             
             // 1. 标准 Session 存储
@@ -79,6 +92,9 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             logger.warn("团队登录失败: {}. 原因: {}", req.getTeamName(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.fail(e.getMessage()));
+        } catch (IllegalStateException e) {
+            logger.warn("团队登录失败(禁用): {}. 原因: {}", req.getTeamName(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(e.getMessage()));
         }
     }
 
@@ -92,6 +108,10 @@ public class AuthController {
         private String contactName;
         @NotBlank
         private String contactPhone;
+        @NotBlank
+        private String captchaId;
+        @NotBlank
+        private String captchaCode;
 
         public String getTeamName() {
             return teamName;
@@ -124,6 +144,22 @@ public class AuthController {
         public void setContactPhone(String contactPhone) {
             this.contactPhone = contactPhone;
         }
+
+        public String getCaptchaId() {
+            return captchaId;
+        }
+
+        public void setCaptchaId(String captchaId) {
+            this.captchaId = captchaId;
+        }
+
+        public String getCaptchaCode() {
+            return captchaCode;
+        }
+
+        public void setCaptchaCode(String captchaCode) {
+            this.captchaCode = captchaCode;
+        }
     }
 
     public static class LoginRequest {
@@ -131,6 +167,10 @@ public class AuthController {
         private String teamName;
         @NotBlank
         private String password;
+        @NotBlank
+        private String captchaId;
+        @NotBlank
+        private String captchaCode;
 
         public String getTeamName() {
             return teamName;
@@ -146,6 +186,22 @@ public class AuthController {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+
+        public String getCaptchaId() {
+            return captchaId;
+        }
+
+        public void setCaptchaId(String captchaId) {
+            this.captchaId = captchaId;
+        }
+
+        public String getCaptchaCode() {
+            return captchaCode;
+        }
+
+        public void setCaptchaCode(String captchaCode) {
+            this.captchaCode = captchaCode;
         }
     }
 }

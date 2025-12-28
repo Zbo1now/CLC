@@ -3,13 +3,13 @@ package com.campuscoin.service;
 import com.campuscoin.dao.AchievementDao;
 import com.campuscoin.dao.TeamDao;
 import com.campuscoin.model.AchievementSubmission;
+import com.campuscoin.util.ConfigCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
 import java.util.List;
 
 @Service
@@ -21,15 +21,18 @@ public class AchievementService {
     private final BaiduService baiduService;
     private final TeamDao teamDao;
     private final TransactionService transactionService;
+    private final ConfigCache configCache;
 
     public AchievementService(AchievementDao achievementDao,
                               BaiduService baiduService,
                               TeamDao teamDao,
-                              TransactionService transactionService) {
+                              TransactionService transactionService,
+                              ConfigCache configCache) {
         this.achievementDao = achievementDao;
         this.baiduService = baiduService;
         this.teamDao = teamDao;
         this.transactionService = transactionService;
+        this.configCache = configCache;
     }
 
     public AchievementSubmission submit(int teamId, String category, String subType, String title, String description, String proofBase64) {
@@ -197,28 +200,36 @@ public class AchievementService {
 
         switch (c) {
             case "PAPER":
-                return 100;
+                return configCache.getInt("reward.achievement.paper", 100);
             case "PATENT":
+                // 支持更细粒度 key（可选），若不存在则回退到通用配置
                 if ("GRANTED".equals(s) || "AUTHORIZED".equals(s)) {
-                    return 400;
+                    int fallback = configCache.getInt("reward.achievement.patent", 400);
+                    return configCache.getInt("reward.achievement.patent.granted", fallback);
                 }
                 if ("ACCEPTED".equals(s)) {
-                    return 200;
+                    int fallback = configCache.getInt("reward.achievement.patent", 200);
+                    return configCache.getInt("reward.achievement.patent.accepted", fallback);
                 }
-                return 200;
+                return configCache.getInt("reward.achievement.patent", 200);
             case "COMPETITION":
                 if ("NATIONAL".equals(s)) {
-                    return 300;
+                    int fallback = configCache.getInt("reward.achievement.competition", 300);
+                    return configCache.getInt("reward.achievement.competition.national", fallback);
                 }
                 if ("PROVINCE".equals(s) || "PROVINCIAL".equals(s)) {
-                    return 150;
+                    int fallback = configCache.getInt("reward.achievement.competition", 150);
+                    return configCache.getInt("reward.achievement.competition.province", fallback);
                 }
                 if ("SCHOOL".equals(s)) {
-                    return 50;
+                    int fallback = configCache.getInt("reward.achievement.competition", 50);
+                    return configCache.getInt("reward.achievement.competition.school", fallback);
                 }
-                return 80;
+                return configCache.getInt("reward.achievement.competition", 80);
+            case "PROJECT":
+                return configCache.getInt("reward.achievement.project", 80);
             case "OTHER":
-                return 80;
+                return configCache.getInt("reward.achievement.other", 80);
             default:
                 return 80;
         }

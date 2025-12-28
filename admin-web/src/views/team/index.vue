@@ -101,6 +101,14 @@
 
         <el-table-column prop="contactPhone" label="联系方式" width="140" />
 
+        <el-table-column prop="enabled" label="账号状态" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.enabled === false ? 'danger' : 'success'" size="small">
+              {{ row.enabled === false ? '已禁用' : '正常' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+
         <el-table-column prop="balance" label="虚拟币余额" width="130" align="right" sortable>
           <template #default="{ row }">
             <span class="balance-value">{{ formatInt(row.balance) }}</span>
@@ -142,6 +150,14 @@
             <el-button link type="success" size="small" @click.stop="handleAdjustBalance(row)">
               <el-icon><CreditCard /></el-icon>
               调币
+            </el-button>
+            <el-button
+              link
+              :type="row.enabled === false ? 'success' : 'danger'"
+              size="small"
+              @click.stop="handleToggleEnabled(row)"
+            >
+              {{ row.enabled === false ? '启用' : '禁用' }}
             </el-button>
           </template>
         </el-table-column>
@@ -209,7 +225,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search,
   RefreshLeft,
@@ -221,7 +237,7 @@ import {
   View,
   CreditCard
 } from '@element-plus/icons-vue'
-import { getTeamList, adjustTeamBalance } from '@/api/team'
+import { getTeamList, adjustTeamBalance, setTeamEnabled } from '@/api/team'
 
 const router = useRouter()
 const loading = ref(false)
@@ -366,6 +382,37 @@ async function handleConfirmAdjust() {
     ElMessage.error(e?.response?.data?.message || '调整失败')
   } finally {
     adjusting.value = false
+  }
+}
+
+async function handleToggleEnabled(row) {
+  const currentEnabled = row.enabled !== false
+  const nextEnabled = !currentEnabled
+
+  try {
+    let reason = ''
+    if (!nextEnabled) {
+      const r = await ElMessageBox.prompt('请输入禁用原因（可选）', '禁用账号', {
+        confirmButtonText: '确认禁用',
+        cancelButtonText: '取消',
+        inputPlaceholder: '例如：违规操作/账号异常'
+      })
+      reason = r?.value || ''
+    } else {
+      await ElMessageBox.confirm('确认启用该账号吗？', '启用账号', {
+        confirmButtonText: '确认启用',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    }
+
+    await setTeamEnabled(row.id, { enabled: nextEnabled, reason })
+    row.enabled = nextEnabled
+    ElMessage.success(nextEnabled ? '已启用' : '已禁用')
+  } catch (e) {
+    // cancel or error
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e?.response?.data?.message || '操作失败')
   }
 }
 

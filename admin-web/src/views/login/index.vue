@@ -3,7 +3,8 @@
     <div class="login-content">
       <div class="login-header">
         <el-icon class="logo-icon"><Monitor /></el-icon>
-        <h2 class="title">众创空间管理系统</h2>
+        <!-- 品牌：创联空间管理系统 -->
+        <h2 class="title">创联空间管理系统</h2>
       </div>
       <el-card class="login-card" shadow="hover">
         <div class="welcome-text">欢迎回来，请登录</div>

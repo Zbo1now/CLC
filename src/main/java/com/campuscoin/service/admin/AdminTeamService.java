@@ -4,10 +4,12 @@ import com.campuscoin.dao.admin.AdminTeamDao;
 import com.campuscoin.dao.admin.AdminOperationLogDao;
 import com.campuscoin.dao.TransactionDao;
 import com.campuscoin.dao.TeamDao;
+import com.campuscoin.dao.TeamMemberDao;
 import com.campuscoin.model.admin.AdminTeamListItem;
 import com.campuscoin.model.admin.AdminTeamDetail;
 import com.campuscoin.model.admin.AdminOperationLog;
 import com.campuscoin.model.Transaction;
+import com.campuscoin.model.TeamMember;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class AdminTeamService {
 
     @Autowired
     private AdminOperationLogDao adminOperationLogDao;
+
+    @Autowired
+    private TeamMemberDao teamMemberDao;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -200,5 +205,42 @@ public class AdminTeamService {
 
         logger.warn("手动调整虚拟币失败 - teamId={}", teamId);
         return false;
+    }
+
+    /**
+     * 启用/禁用团队账号（后台管理）
+     */
+    @Transactional
+    public boolean setTeamEnabled(Integer teamId, boolean enabled, Integer adminId, String ipAddress, String reason) {
+        int rows = teamDao.updateEnabled(teamId, enabled);
+        if (rows > 0) {
+            AdminOperationLog log = new AdminOperationLog();
+            log.setAdminId(adminId);
+            log.setOperationType("SET_TEAM_ENABLED");
+            log.setTargetType("TEAM");
+            log.setTargetId(teamId);
+            log.setOperationDetail("{\"enabled\":" + (enabled ? 1 : 0) + "}");
+            log.setReason(reason);
+            log.setIpAddress(ipAddress);
+            adminOperationLogDao.insert(log);
+            return true;
+        }
+        return false;
+    }
+
+    public List<TeamMember> listMembers(Integer teamId) {
+        return teamMemberDao.listByTeam(teamId);
+    }
+
+    @Transactional
+    public TeamMember addMember(Integer teamId, String memberName, String role, String phone) {
+        TeamMember member = new TeamMember();
+        member.setTeamId(teamId);
+        member.setMemberName(memberName);
+        member.setRole(role == null || role.trim().isEmpty() ? "MEMBER" : role.trim());
+        member.setPhone(phone != null && !phone.trim().isEmpty() ? phone.trim() : null);
+        member.setStatus("ACTIVE");
+        teamMemberDao.insert(member);
+        return member;
     }
 }

@@ -1,6 +1,6 @@
-# CampusCoin Admin Web
+# 创联空间管理系统（Admin Web）
 
-这是 CampusCoin 后台管理系统的前端项目，基于 Vue 3 + Vite + Element Plus 开发。
+这是创联空间管理系统的前端项目，基于 Vue 3 + Vite + Element Plus 开发。
 
 ## 目录结构
 

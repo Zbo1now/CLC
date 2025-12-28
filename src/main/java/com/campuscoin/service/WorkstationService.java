@@ -5,7 +5,6 @@ import com.campuscoin.dao.WorkstationDao;
 import com.campuscoin.dao.WorkstationLeaseDao;
 import com.campuscoin.model.Workstation;
 import com.campuscoin.model.WorkstationLease;
-import com.campuscoin.service.TransactionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -113,7 +112,6 @@ public class WorkstationService {
         }
 
         LocalDate currentMonthStartLd = LocalDate.now().withDayOfMonth(1);
-        Date currentMonthStart = Date.valueOf(currentMonthStartLd);
 
         // 允许“到期后续租”：使用最近一条 ACTIVE 租约作为续租基准
         WorkstationLease latest = leaseDao.findLatestActiveByTeam(teamId);
@@ -178,7 +176,6 @@ public class WorkstationService {
     @Transactional
     public void releaseMyLeaseIfExpired(int teamId) {
         LocalDate currentMonthStartLd = LocalDate.now().withDayOfMonth(1);
-        Date currentMonthStart = Date.valueOf(currentMonthStartLd);
 
         WorkstationLease latest = leaseDao.findLatestActiveByTeam(teamId);
         if (latest == null) {

@@ -2,7 +2,7 @@
   <view class="container">
     <!-- 顶部导航栏 -->
     <view class="nav-header">
-      <view class="nav-title">众创空间 · 智创未来</view>
+      <view class="nav-title">创联空间</view>
       <view class="nav-actions">
         <view class="nav-icon-btn">
           <text class="nav-icon">🔔</text>
@@ -286,9 +286,14 @@ function submitCheckIn(base64) {
     success: (res) => {
       uni.hideLoading();
       if (res.statusCode === 200 && res.data.success) {
-        uni.showToast({ title: '打卡成功 +10币', icon: 'success' });
-        // 刷新余额（模拟）
-        balance.value += 10;
+        const earned = (res.data && res.data.data && typeof res.data.data.coinsEarned === 'number')
+          ? res.data.data.coinsEarned
+          : 0;
+        const tip = (res.data && res.data.data && res.data.data.message) || res.data.message || '打卡成功';
+        uni.showToast({ title: tip, icon: 'none' });
+
+        // 以服务端返回为准刷新余额展示（避免前端写死 +10）
+        balance.value = (balance.value || 0) + earned;
         uni.setStorageSync('teamBalance', balance.value);
       } else {
         uni.showToast({ title: res.data.message || '打卡失败', icon: 'none' });

@@ -6,7 +6,7 @@
     <view class="glass-card">
       <view class="title-area">
         <view class="main-title">刷脸登录</view>
-        <view class="sub-title">CampusCoin Face ID</view>
+        <view class="sub-title">InnoLink Face ID</view>
       </view>
 
       <view class="camera-box" @tap="chooseImage">

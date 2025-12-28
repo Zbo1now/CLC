@@ -2,7 +2,6 @@ package com.campuscoin.service;
 
 import com.campuscoin.dao.TeamDao;
 import com.campuscoin.model.Team;
-import com.campuscoin.service.TransactionService;
 import com.campuscoin.util.LogUtil;
 import com.campuscoin.util.PasswordUtil;
 import org.springframework.stereotype.Service;
@@ -94,6 +93,10 @@ public class AuthService {
         if (team == null) {
             logger.warning("登录失败: 用户不存在 - " + teamName);
             throw new IllegalArgumentException("登录失败：用户不存在");
+        }
+        if (team.getEnabled() != null && !team.getEnabled()) {
+            logger.warning("登录失败: 账号已禁用 - " + teamName);
+            throw new IllegalStateException("账号已被禁用");
         }
         String storedHash = team.getPasswordHash();
         if (storedHash == null || storedHash.isEmpty()) {

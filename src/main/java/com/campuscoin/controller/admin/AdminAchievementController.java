@@ -3,6 +3,7 @@ package com.campuscoin.controller.admin;
 import com.campuscoin.model.admin.AdminAchievementListItem;
 import com.campuscoin.payload.ApiResponse;
 import com.campuscoin.payload.PagedResponse;
+import com.campuscoin.service.AchievementService;
 import com.campuscoin.service.admin.AdminAchievementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +21,12 @@ public class AdminAchievementController {
     private static final Logger logger = LoggerFactory.getLogger(AdminAchievementController.class);
 
     private final AdminAchievementService adminAchievementService;
+    private final AchievementService achievementService;
 
-    public AdminAchievementController(AdminAchievementService adminAchievementService) {
+    public AdminAchievementController(AdminAchievementService adminAchievementService,
+                                      AchievementService achievementService) {
         this.adminAchievementService = adminAchievementService;
+        this.achievementService = achievementService;
     }
 
     /**
@@ -92,17 +96,19 @@ public class AdminAchievementController {
         String adminUsername = (String) httpRequest.getAttribute("adminUsername");
         logger.info("管理员审核通过成果 - ID:{}, 奖励币值:{}, 审核人:{}", id, request.getRewardCoins(), adminUsername);
 
-        if (request.getRewardCoins() == null || request.getRewardCoins() <= 0) {
-            return ApiResponse.fail("奖励币值必须大于0");
-        }
-
         try {
-            boolean success = adminAchievementService.approveAchievement(id, request.getRewardCoins(), adminUsername);
-            if (success) {
+            // 若未显式传入奖励币值，则按系统配置/规则自动计算（与系统配置页面保持一致）
+            if (request.getRewardCoins() == null) {
+                achievementService.adminApprove(id, adminUsername);
                 return ApiResponse.ok("审核通过并发币成功", null);
-            } else {
-                return ApiResponse.fail("审核失败：成果不存在或已审核");
             }
+
+            if (request.getRewardCoins() <= 0) {
+                return ApiResponse.fail("奖励币值必须大于0");
+            }
+
+            boolean success = adminAchievementService.approveAchievement(id, request.getRewardCoins(), adminUsername);
+            return success ? ApiResponse.ok("审核通过并发币成功", null) : ApiResponse.fail("审核失败：成果不存在或已审核");
         } catch (Exception e) {
             logger.error("审核通过成果失败 - ID:{}", id, e);
             return ApiResponse.fail("审核失败：" + e.getMessage());

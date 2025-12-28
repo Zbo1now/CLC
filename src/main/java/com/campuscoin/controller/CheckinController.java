@@ -7,6 +7,7 @@ import com.campuscoin.service.BaiduService;
 import com.campuscoin.service.TransactionService;
 import com.campuscoin.dao.CheckinDao;
 import com.campuscoin.dao.TeamDao;
+import com.campuscoin.util.ConfigCache;
 import com.campuscoin.util.SessionHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +31,18 @@ public class CheckinController {
     private final TeamDao teamDao;
     private final CheckinDao checkinDao;
     private final TransactionService transactionService;
+    private final ConfigCache configCache;
 
-    public CheckinController(BaiduService baiduService, TeamDao teamDao, CheckinDao checkinDao, TransactionService transactionService) {
+    public CheckinController(BaiduService baiduService,
+                             TeamDao teamDao,
+                             CheckinDao checkinDao,
+                             TransactionService transactionService,
+                             ConfigCache configCache) {
         this.baiduService = baiduService;
         this.teamDao = teamDao;
         this.checkinDao = checkinDao;
         this.transactionService = transactionService;
+        this.configCache = configCache;
     }
 
     @PostMapping("/register")
@@ -156,8 +163,8 @@ public class CheckinController {
                 streak = 1;
             }
             
-            // 计算奖励
-            int baseReward = 10;
+            // 计算奖励（基础奖励可由系统配置控制）
+            int baseReward = configCache.getInt("reward.checkin", 10);
             int bonus = (streak > 3) ? 20 : 0;
             int totalReward = baseReward + bonus;
             

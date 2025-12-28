@@ -11,6 +11,7 @@ public class AdminTeamListItem {
     private String teamName;
     private String contactName;
     private String contactPhone;
+    private Boolean enabled; // 账号状态
     private Integer balance; // 当前虚拟币余额
     private Integer weeklyCheckins; // 本周活跃度（打卡次数）
     private Integer totalAchievements; // 成果数量（累计）
@@ -50,6 +51,14 @@ public class AdminTeamListItem {
 
     public void setContactPhone(String contactPhone) {
         this.contactPhone = contactPhone;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 
     public Integer getBalance() {

@@ -13,7 +13,7 @@
         <view class="glass-card balance-card">
           <view class="card-header">
             <text class="card-label">当前虚拟币余额</text>
-            <text class="card-icon">💰</text>
+            <text class="card-icon">BAL</text>
           </view>
           <view class="balance-value">{{ balance }} <text class="unit">币</text></view>
           <view class="card-actions">
@@ -26,13 +26,11 @@
         <!-- 团队信息 -->
         <view class="glass-card info-card">
           <view class="section-title">
-            <text class="section-icon">🏷️</text>
             <text>团队信息</text>
           </view>
 
           <view class="row">
             <view class="row-left">
-              <text class="row-icon">👥</text>
               <text class="row-label">团队名称</text>
             </view>
             <view class="row-right">
@@ -42,7 +40,6 @@
 
           <view class="row">
             <view class="row-left">
-              <text class="row-icon">🕒</text>
               <text class="row-label">登录时间</text>
             </view>
             <view class="row-right">
@@ -55,38 +52,63 @@
 
         <!-- 团队成员（占位） -->
         <view class="glass-card members-card">
-          <view class="section-title">
-            <text class="section-icon">🧑‍🤝‍🧑</text>
-            <text>团队成员</text>
+          <view class="section-title-bar">
+            <view class="section-title">
+              <text>团队成员</text>
+            </view>
+            <view class="mini-btn" @tap="openAddMember">添加成员</view>
           </view>
+
+          <view v-if="members.length === 0" class="empty-hint">暂无成员</view>
 
           <view class="member" v-for="m in members" :key="m.id">
             <view class="avatar">
-              <text class="avatar-text">{{ m.initials }}</text>
+              <text class="avatar-text">{{ toInitials(m.memberName) }}</text>
             </view>
             <view class="member-info">
-              <text class="member-name">{{ m.name }}</text>
-              <text class="member-meta">{{ m.role }} · {{ m.status }}</text>
+              <text class="member-name">{{ m.memberName }}</text>
+              <text class="member-meta">{{ roleLabel(m.role) }}<text v-if="m.phone"> · {{ m.phone }}</text></text>
             </view>
-            <view class="pill">待接入</view>
+            <view class="pill">{{ statusLabel(m.status) }}</view>
           </view>
         </view>
 
         <!-- 账号与安全 -->
         <view class="glass-card actions-card">
           <view class="section-title">
-            <text class="section-icon">🛡️</text>
             <text>账号与安全</text>
           </view>
 
           <view class="actions">
             <button class="primary-btn" @tap="logout">
-              <text class="btn-icon">🚪</text>
               <text class="btn-text">退出登录</text>
             </button>
           </view>
 
           <view class="hint">* 退出后需要重新刷脸/账号登录</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 添加成员弹窗 -->
+    <view v-if="addDialogVisible" class="dialog-mask" @tap="closeAddMember">
+      <view class="dialog glass-card" @tap.stop>
+        <view class="dialog-title">添加团队成员</view>
+
+        <view class="dialog-form">
+          <view class="dialog-row">
+            <text class="dialog-label">姓名</text>
+            <input class="dialog-input" v-model="addForm.memberName" placeholder="请输入成员姓名" />
+          </view>
+          <view class="dialog-row">
+            <text class="dialog-label">手机号</text>
+            <input class="dialog-input" v-model="addForm.phone" placeholder="选填" />
+          </view>
+        </view>
+
+        <view class="dialog-actions">
+          <button class="ghost-btn" @tap="closeAddMember">取消</button>
+          <button class="primary-btn" @tap="submitAddMember" :disabled="addingMember">确认添加</button>
         </view>
       </view>
     </view>
@@ -103,11 +125,14 @@ const balance = ref(0);
 const teamName = ref('');
 const loginTime = ref(null);
 
-const members = ref([
-  { id: 1, initials: 'A', name: '成员 A', role: '负责人', status: '在线' },
-  { id: 2, initials: 'B', name: '成员 B', role: '成员', status: '离线' },
-  { id: 3, initials: 'C', name: '成员 C', role: '成员', status: '离线' }
-]);
+const members = ref([]);
+const addingMember = ref(false);
+const addDialogVisible = ref(false);
+
+const addForm = ref({
+  memberName: '',
+  phone: ''
+});
 
 const getSessionId = () => {
   let sessionId = '';
@@ -135,6 +160,24 @@ const handle401 = () => {
   setTimeout(() => uni.reLaunch({ url: '/pages/index/index' }), 1200);
 };
 
+function toInitials(name) {
+  const s = String(name || '').trim();
+  if (!s) return '-';
+  return s.slice(0, 1).toUpperCase();
+}
+
+function roleLabel(role) {
+  const r = String(role || '').toUpperCase();
+  if (r === 'LEADER') return '负责人';
+  return '成员';
+}
+
+function statusLabel(status) {
+  const s = String(status || '').toUpperCase();
+  if (s === 'INACTIVE') return '停用';
+  return '正常';
+}
+
 const fetchSummary = () => {
   const sessionId = getSessionId();
   return new Promise((resolve) => {
@@ -161,8 +204,33 @@ const fetchSummary = () => {
   });
 };
 
+const fetchMembers = () => {
+  const sessionId = getSessionId();
+  return new Promise((resolve) => {
+    uni.request({
+      url: `${baseUrl}/api/teams/me/members`,
+      method: 'GET',
+      header: { 'X-Session-Id': sessionId },
+      withCredentials: true,
+      success: (res) => {
+        if (res.statusCode === 401) {
+          handle401();
+          resolve();
+          return;
+        }
+        if (res.statusCode === 200 && res.data && res.data.success) {
+          members.value = (res.data.data && res.data.data.list) ? res.data.data.list : [];
+        }
+        resolve();
+      },
+      fail: () => resolve()
+    });
+  });
+};
+
 const refreshAll = async () => {
   await fetchSummary();
+  await fetchMembers();
 };
 
 const logout = () => {
@@ -210,6 +278,55 @@ onShow(async () => {
   if (!userInfo) return;
   await refreshAll();
 });
+
+function openAddMember() {
+  addForm.value = { memberName: '', phone: '' };
+  addDialogVisible.value = true;
+}
+
+function closeAddMember() {
+  addDialogVisible.value = false;
+}
+
+async function submitAddMember() {
+  const memberName = String(addForm.value.memberName || '').trim();
+  const phone = String(addForm.value.phone || '').trim();
+  const role = 'MEMBER';
+
+  if (!memberName) {
+    uni.showToast({ title: '请输入成员姓名', icon: 'none' });
+    return;
+  }
+
+  const sessionId = getSessionId();
+  addingMember.value = true;
+  uni.request({
+    url: `${baseUrl}/api/teams/me/members`,
+    method: 'POST',
+    header: { 'Content-Type': 'application/json', 'X-Session-Id': sessionId },
+    withCredentials: true,
+    data: { memberName, role, phone },
+    success: async (res) => {
+      if (res.statusCode === 401) {
+        handle401();
+        return;
+      }
+      if (res.statusCode === 200 && res.data && res.data.success) {
+        uni.showToast({ title: '添加成功', icon: 'success' });
+        closeAddMember();
+        await fetchMembers();
+        return;
+      }
+      uni.showToast({ title: (res.data && res.data.message) || '添加失败', icon: 'none' });
+    },
+    fail: () => {
+      uni.showToast({ title: '网络异常', icon: 'none' });
+    },
+    complete: () => {
+      addingMember.value = false;
+    }
+  });
+}
 </script>
 
 <style lang="scss" scoped>
@@ -347,8 +464,11 @@ onShow(async () => {
   margin-bottom: 18rpx;
 }
 
-.section-icon {
-  font-size: 32rpx;
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
 .row {
@@ -450,6 +570,92 @@ onShow(async () => {
   font-weight: 800;
 }
 
+.mini-btn {
+  padding: 10rpx 16rpx;
+  border-radius: $radius-full;
+  background: rgba($primary, 0.12);
+  color: $primary;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.empty-hint {
+  padding: 18rpx 10rpx;
+  font-size: 24rpx;
+  color: $text-light;
+}
+
+.dialog-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30rpx;
+  z-index: 999;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 640rpx;
+  padding: 30rpx 26rpx;
+}
+
+.dialog-title {
+  font-size: 32rpx;
+  font-weight: 900;
+  color: $text-main;
+  margin-bottom: 20rpx;
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.dialog-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 18rpx 18rpx;
+  border-radius: 18rpx;
+  background: rgba($bg-color, 0.9);
+  box-shadow: $shadow-sm;
+}
+
+.dialog-label {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: $text-main;
+  width: 110rpx;
+  flex-shrink: 0;
+}
+
+.dialog-input {
+  flex: 1;
+  font-size: 26rpx;
+  color: $text-main;
+}
+
+.picker-value {
+  flex: 1;
+  font-size: 26rpx;
+  color: $text-main;
+  text-align: right;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
 .actions {
   display: flex;
   gap: 14rpx;
@@ -475,10 +681,6 @@ onShow(async () => {
 
 .primary-btn:active {
   transform: scale(0.98);
-}
-
-.btn-icon {
-  font-size: 28rpx;
 }
 
 .btn-text {

@@ -244,10 +244,8 @@ const loadConfigs = async () => {
   loading.value = true
   try {
     const res = await getSystemConfigs()
-    console.log('API返回数据:', res)
     if (res.success) {
       configs.value = res.data || {}
-      console.log('设置后的configs.value:', configs.value)
     } else {
       ElMessage.error(res.message || '加载配置失败')
     }

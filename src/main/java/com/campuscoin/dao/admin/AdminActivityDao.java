@@ -4,7 +4,6 @@ import com.campuscoin.model.Activity;
 import com.campuscoin.model.admin.AdminActivityListItem;
 import org.apache.ibatis.annotations.*;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 /**

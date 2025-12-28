@@ -29,6 +29,14 @@
             <span class="value">{{ detail.contactPhone || '-' }}</span>
           </div>
           <div class="info-item">
+            <span class="label">账号状态</span>
+            <span class="value">
+              <el-tag :type="detail.enabled === false ? 'danger' : 'success'" size="small">
+                {{ detail.enabled === false ? '已禁用' : '正常' }}
+              </el-tag>
+            </span>
+          </div>
+          <div class="info-item">
             <span class="label">当前余额</span>
             <span class="value balance">{{ formatInt(detail.balance) }} 币</span>
           </div>
@@ -48,6 +56,12 @@
           </el-button>
           <el-button type="success" :icon="CreditCard" @click="handleAdjustBalance">
             调整虚拟币
+          </el-button>
+          <el-button
+            :type="detail.enabled === false ? 'success' : 'danger'"
+            @click="handleToggleEnabled"
+          >
+            {{ detail.enabled === false ? '启用账号' : '禁用账号' }}
           </el-button>
           <el-button type="warning" :icon="Download" @click="handleExportReport">
             导出报告
@@ -131,6 +145,45 @@
             <span class="legend-desc">值班+培训</span>
           </div>
         </div>
+      </el-card>
+
+      <!-- 团队成员 -->
+      <el-card class="members-card">
+        <template #header>
+          <div class="card-title">
+            <el-icon><User /></el-icon>
+            <span>团队成员</span>
+          </div>
+        </template>
+
+        <div class="members-toolbar">
+          <el-button type="primary" @click="openAddMemberDialog">添加成员</el-button>
+        </div>
+
+        <el-table :data="members" v-loading="membersLoading" stripe style="width: 100%">
+          <el-table-column prop="id" label="ID" width="80" align="center" />
+          <el-table-column prop="memberName" label="姓名" min-width="160" />
+          <el-table-column prop="role" label="角色" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.role === 'LEADER' ? 'warning' : 'info'" size="small">
+                {{ row.role === 'LEADER' ? '负责人' : '成员' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="phone" label="手机号" width="160" />
+          <el-table-column prop="status" label="状态" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'INACTIVE' ? 'danger' : 'success'" size="small">
+                {{ row.status === 'INACTIVE' ? '停用' : '正常' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="创建时间" width="170" align="center">
+            <template #default="{ row }">
+              {{ formatDateTime(row.createdAt) }}
+            </template>
+          </el-table-column>
+        </el-table>
       </el-card>
 
       <!-- 行为时间线 -->
@@ -277,6 +330,28 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 添加成员对话框 -->
+    <el-dialog v-model="memberDialogVisible" title="添加团队成员" width="520px">
+      <el-form :model="memberForm" label-width="90px">
+        <el-form-item label="姓名" required>
+          <el-input v-model="memberForm.memberName" placeholder="请输入成员姓名" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="memberForm.phone" placeholder="选填" />
+        </el-form-item>
+        <el-form-item label="角色" required>
+          <el-select v-model="memberForm.role" style="width: 100%">
+            <el-option label="成员" value="MEMBER" />
+            <el-option label="负责人" value="LEADER" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="memberDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="addingMember" @click="handleConfirmAddMember">确认添加</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -295,10 +370,11 @@ import {
   Briefcase,
   Reading,
   DataAnalysis,
-  Clock
+  Clock,
+  User
 } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
-import { getTeamDetail, getTeamTimeline, resetTeamPassword, adjustTeamBalance } from '@/api/team'
+import { getTeamDetail, getTeamTimeline, resetTeamPassword, adjustTeamBalance, setTeamEnabled, getTeamMembers, addTeamMember } from '@/api/team'
 
 const route = useRoute()
 const router = useRouter()
@@ -312,6 +388,7 @@ const detail = reactive({
   teamName: '',
   contactName: '',
   contactPhone: '',
+  enabled: true,
   balance: 0,
   currentStreak: 0,
   createdAt: null,
@@ -348,6 +425,17 @@ const adjustDialogVisible = ref(false)
 const adjustForm = reactive({
   amount: 0,
   reason: ''
+})
+
+// 团队成员
+const members = ref([])
+const membersLoading = ref(false)
+const memberDialogVisible = ref(false)
+const addingMember = ref(false)
+const memberForm = reactive({
+  memberName: '',
+  phone: '',
+  role: 'MEMBER'
 })
 
 const allBookings = computed(() => {
@@ -439,6 +527,18 @@ async function fetchTimeline() {
     timeline.venueBookings = data.venueBookings || []
   } catch (e) {
     console.error('加载时间线失败', e)
+  }
+}
+
+async function fetchMembers() {
+  membersLoading.value = true
+  try {
+    const resp = await getTeamMembers(teamId.value)
+    members.value = resp?.data?.list || []
+  } catch (e) {
+    ElMessage.error(e?.response?.data?.message || '加载成员列表失败')
+  } finally {
+    membersLoading.value = false
   }
 }
 
@@ -578,9 +678,71 @@ function handleExportReport() {
   })
 }
 
+async function handleToggleEnabled() {
+  const currentEnabled = detail.enabled !== false
+  const nextEnabled = !currentEnabled
+
+  try {
+    let reason = ''
+    if (!nextEnabled) {
+      const r = await ElMessageBox.prompt('请输入禁用原因（可选）', '禁用账号', {
+        confirmButtonText: '确认禁用',
+        cancelButtonText: '取消',
+        inputPlaceholder: '例如：违规操作/账号异常'
+      })
+      reason = r?.value || ''
+    } else {
+      await ElMessageBox.confirm('确认启用该账号吗？', '启用账号', {
+        confirmButtonText: '确认启用',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    }
+
+    await setTeamEnabled(teamId.value, { enabled: nextEnabled, reason })
+    detail.enabled = nextEnabled
+    ElMessage.success(nextEnabled ? '已启用' : '已禁用')
+  } catch (e) {
+    if (e === 'cancel' || e === 'close') return
+    ElMessage.error(e?.response?.data?.message || '操作失败')
+  }
+}
+
+function openAddMemberDialog() {
+  memberForm.memberName = ''
+  memberForm.phone = ''
+  memberForm.role = 'MEMBER'
+  memberDialogVisible.value = true
+}
+
+async function handleConfirmAddMember() {
+  const memberName = String(memberForm.memberName || '').trim()
+  if (!memberName) {
+    ElMessage.warning('请输入成员姓名')
+    return
+  }
+
+  addingMember.value = true
+  try {
+    await addTeamMember(teamId.value, {
+      memberName,
+      phone: memberForm.phone,
+      role: memberForm.role
+    })
+    ElMessage.success('新增成功')
+    memberDialogVisible.value = false
+    fetchMembers()
+  } catch (e) {
+    ElMessage.error(e?.response?.data?.message || '新增失败')
+  } finally {
+    addingMember.value = false
+  }
+}
+
 onMounted(() => {
   fetchDetail()
   fetchTimeline()
+  fetchMembers()
 })
 </script>
 
@@ -639,10 +801,35 @@ onMounted(() => {
   }
 
   .actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
+    max-width: 760px;
+    margin: 0 auto;
     padding-top: 16px;
     border-top: 1px dashed var(--el-border-color-lighter);
+
+    :deep(.el-button) {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .basic-card {
+    .actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 520px;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .basic-card {
+    .actions {
+      grid-template-columns: 1fr;
+      max-width: 320px;
+    }
   }
 }
 
@@ -852,5 +1039,21 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+}
+
+.members-card {
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .members-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
 }
 </style>

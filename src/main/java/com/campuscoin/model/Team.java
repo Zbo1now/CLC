@@ -9,6 +9,7 @@ public class Team {
     private String contactName;
     private String contactPhone;
     private String faceImage;
+    private Boolean enabled;
     private int balance;
     private int currentStreak;
     private java.sql.Date lastCheckinDate;
@@ -17,13 +18,14 @@ public class Team {
     public Team() {
     }
 
-    public Team(int id, String teamName, String passwordHash, String contactName, String contactPhone, String faceImage, int balance, int currentStreak, java.sql.Date lastCheckinDate, Timestamp createdAt) {
+    public Team(int id, String teamName, String passwordHash, String contactName, String contactPhone, String faceImage, Boolean enabled, int balance, int currentStreak, java.sql.Date lastCheckinDate, Timestamp createdAt) {
         this.id = id;
         this.teamName = teamName;
         this.passwordHash = passwordHash;
         this.contactName = contactName;
         this.contactPhone = contactPhone;
         this.faceImage = faceImage;
+        this.enabled = enabled;
         this.balance = balance;
         this.currentStreak = currentStreak;
         this.lastCheckinDate = lastCheckinDate;
@@ -77,6 +79,14 @@ public class Team {
 
     public void setFaceImage(String faceImage) {
         this.faceImage = faceImage;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 
     public int getBalance() {

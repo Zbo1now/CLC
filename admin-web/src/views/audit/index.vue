@@ -318,6 +318,7 @@ import {
   Link
 } from '@element-plus/icons-vue'
 import { getAchievementList, approveAchievement, rejectAchievement } from '@/api/achievement'
+import { getConfigsByCategory } from '@/api/systemConfig'
 import dayjs from 'dayjs'
 
 // 筛选表单
@@ -376,6 +377,56 @@ const rejectRules = {
 }
 
 const submitting = ref(false)
+
+// 系统配置：奖励配置（用于审核通过默认币值）
+const rewardConfigMap = ref({})
+const rewardConfigsLoaded = ref(false)
+
+const categoryToRewardKey = (category) => {
+  const raw = String(category || '').trim()
+  const upper = raw.toUpperCase()
+
+  // 兼容：中文分类（部分页面/数据源可能直接用中文存库）
+  const zhMap = {
+    '论文发表': 'reward.achievement.paper',
+    '专利申请': 'reward.achievement.patent',
+    '竞赛获奖': 'reward.achievement.competition',
+    '科研项目': 'reward.achievement.project',
+    '其他成果': 'reward.achievement.other'
+  }
+  if (zhMap[raw]) return zhMap[raw]
+
+  // 兼容：英文枚举（PAPER/PATENT/COMPETITION/PROJECT/OTHER）
+  const enumMap = {
+    PAPER: 'reward.achievement.paper',
+    PATENT: 'reward.achievement.patent',
+    COMPETITION: 'reward.achievement.competition',
+    PROJECT: 'reward.achievement.project',
+    OTHER: 'reward.achievement.other'
+  }
+  if (enumMap[upper]) return enumMap[upper]
+
+  return ''
+}
+
+const loadRewardConfigs = async () => {
+  try {
+    const res = await getConfigsByCategory('REWARD')
+    if (res.success) {
+      const list = Array.isArray(res.data) ? res.data : []
+      const m = {}
+      for (const item of list) {
+        if (item && item.configKey) {
+          m[item.configKey] = item.configValue
+        }
+      }
+      rewardConfigMap.value = m
+      rewardConfigsLoaded.value = true
+    }
+  } catch (e) {
+    // 读取失败不阻断审核流程，后续会使用默认 100
+  }
+}
 
 // 加载成果列表
 const loadAchievementList = async () => {
@@ -451,9 +502,23 @@ const handleViewDetail = (row) => {
 }
 
 // 审核通过
-const handleApprove = (row) => {
+const handleApprove = async (row) => {
   currentAchievement.value = row
-  approveForm.rewardCoins = row.rewardCoins || 100
+
+  // 确保弹窗打开时默认值已经跟系统配置对齐
+  if (!rewardConfigsLoaded.value) {
+    await loadRewardConfigs()
+  }
+
+  const key = categoryToRewardKey(row.category)
+  const cfgVal = key ? rewardConfigMap.value[key] : null
+  const cfgNum = cfgVal != null ? Number(cfgVal) : NaN
+  if (Number.isFinite(cfgNum) && cfgNum > 0) {
+    approveForm.rewardCoins = cfgNum
+  } else {
+    approveForm.rewardCoins = 100
+    ElMessage.warning('未读取到系统配置默认币值，已使用默认值 100（可手动修改）')
+  }
   detailDialogVisible.value = false
   approveDialogVisible.value = true
 }
@@ -570,6 +635,7 @@ const getCategoryType = (category) => {
 onMounted(() => {
   loadAchievementList()
   loadStats()
+  loadRewardConfigs()
 })
 </script>
 
